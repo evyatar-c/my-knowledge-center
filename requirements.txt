@@ -1,3 +1,6 @@
 streamlit
 google-generativeai
 PyPDF2
+youtube-transcript-api
+requests
+beautifulsoup4
