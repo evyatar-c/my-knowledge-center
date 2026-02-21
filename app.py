@@ -97,17 +97,27 @@ else:
 @st.cache_resource
 def get_available_models():
     """
-    מושך ישירות מהשרת את רשימת המודלים שזמינים למפתח הספציפי.
-    מונע שגיאות 404.
+    מושך את המודלים הזמינים ומוסיף להם תיאור בהתאם ליכולת שלהם.
+    מוודא שימוש אך ורק במשפחת Gemini 3.
     """
     try:
         models = {}
         for m in genai.list_models():
             if 'generateContent' in m.supported_generation_methods:
                 name = m.name
-                if 'gemini' in name:
-                    display_name = name.split('models/')[1]
-                    models[display_name] = name
+                # סינון קפדני: רק מודלים של דור 3
+                if 'gemini-3' in name.lower():
+                    clean_name = name.split('models/')[1]
+                    
+                    # הוספת תיאור לכל מודל שנמצא פתוח בחשבון שלך
+                    if 'pro' in clean_name:
+                        models[f"🧠 {clean_name} (מעמיק, מומלץ לסיכומי Senior)"] = name
+                    elif 'think' in clean_name:
+                        models[f"🤔 {clean_name} (מודל הסקה וחשיבה)"] = name
+                    elif 'flash' in clean_name:
+                        models[f"⚡ {clean_name} (מהיר, לסיכומים נקודתיים)"] = name
+                    else:
+                        models[clean_name] = name
         return models
     except Exception as e:
         return {}
@@ -208,35 +218,43 @@ with st.sidebar:
     generate_btn = st.button("🚀 הפק סיכום מקיף", type="primary", use_container_width=True)
 
 if generate_btn:
-    with st.spinner(f"מעבד נתונים בעזרת {selected_model_display}..."):
+    with st.spinner(f"מעבד נתונים לעומק בעזרת {selected_model_display}... (זה עשוי לקחת מעט יותר זמן)"):
         content = get_pdf_text() + get_links_content()
         
         if content.strip():
             try:
-                model = genai.GenerativeModel(working_model)
+                # הגדרת קונפיגורציה שמאפשרת תשובה ארוכה מאוד (עד 8192 טוקנים)
+                generation_config = genai.types.GenerationConfig(
+                    max_output_tokens=8192,
+                    temperature=0.3 # טמפרטורה נמוכה שומרת אותו ממוקד ומקצועי
+                )
+                
+                model = genai.GenerativeModel(working_model, generation_config=generation_config)
                 
                 if focus_text.strip():
-                    task_instruction = f"משימה: הלקוח בחר בקטגוריית '{category}', אך ביקש למקד את הסיכום אך ורק בנושא הבא: {focus_text}. התעלם משאר נושאי הקטגוריה והרחב לעומק רק על המיקוד שביקש."
+                    task_instruction = f"משימה: התמקד אך ורק בנושא הבא: {focus_text}. התעלם משאר נושאי הקטגוריה. ספק צלילת עומק מקיפה וחסרת פשרות לנושא זה."
                 else:
                     task_instruction = f"משימה: {categories[category]}"
                 
                 prompt = f"""
-                אתה מהנדס מכונות בכיר ומדריך טכני.
+                אתה מהנדס מכונות בכיר ומדריך טכני. המטרה שלך היא לייצר מסמך לימוד מקיף, מעמיק ומפורט ככל האפשר.
+                איסור מוחלט על תמצות: אל תשמיט שום פרט טכני, הסבר מנגנונים לעומק ואל תדלג על שלבים בתיאור.
                 
                 {task_instruction}
                 
                 הנחיות קריטיות לביצוע:
                 1. התבסס אך ורק על המידע מהמקורות שסופקו.
-                2. הסבר בהרחבה את הלוגיקה ההנדסית.
-                3. חלק את התשובה לכותרות ורשימות בולטים.
-                4. **הנחיה למשוואות:** כל נוסחה מתמטית חייבת להיכתב ב-LaTeX סטנדרטי משמאל לימין. השתמש ב- $ עבור משוואה בתוך השורה, וב- $$ למשוואה ממורכזת בשורה נפרדת.
-                5. ספק תשובה ברמת Senior Mechanical Engineer.
+                2. הסבר בהרחבה את הלוגיקה ההנדסית ("הלמה" ו"האיך"). צלול לפרטים המיקרוסקופיים והמקרוסקופיים של כל תהליך.
+                3. עבור כל טענה, שיטה או כלל תכן - הסבר את הסיבות ההנדסיות לבחירה בו ואת החלופות.
+                4. חלק את התשובה לכותרות ראשיות, כותרות משנה, ורשימות בולטים ארוכות ומפורטות.
+                5. **הנחיה למשוואות:** כל נוסחה מתמטית חייבת להיכתב ב-LaTeX סטנדרטי משמאל לימין. השתמש ב- $ עבור משוואה בתוך השורה, וב- $$ למשוואה ממורכזת בשורה נפרדת.
+                6. כתוב בצורה מקצועית, אובייקטיבית וקרה.
                 
                 המקורות:
                 ---
                 {content[:250000]}
                 ---
-                כתוב בעברית טכנית ברמה גבוהה מאוד.
+                כתוב בעברית טכנית ברמה גבוהה.
                 """
                 response = model.generate_content(prompt)
                 
