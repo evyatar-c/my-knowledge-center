@@ -13,14 +13,23 @@ st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700&display=swap');
     
-    /* הגדרת פונט וכיוון כללי */
+    /* הגדרת פונט כללי */
     html, body, [class*="css"] {
         font-family: 'Heebo', sans-serif;
+    }
+    
+    /* יישור לימין של התוכן המרכזי בלבד - מונע באגים בתפריט הצד */
+    [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
         direction: RTL;
         text-align: right;
     }
     
-    /* יישור טקסט עברי בלבד! (הורדנו את ה-span וה-div כדי לא לדפוק את הנוסחאות) */
+    /* החלת RTL רק על התוכן *בתוך* תפריט הצד, כדי לא לשבור את כפתור הכיווץ וידית ההרחבה */
+    [data-testid="stSidebarUserContent"] {
+        direction: RTL;
+        text-align: right;
+    }
+    
     p, li, h1, h2, h3, h4, h5, h6, label {
         direction: RTL;
         text-align: right;
@@ -28,7 +37,6 @@ st.markdown("""
     
     /* =========================================
        תיקון הרמטי לנוסחאות (KaTeX)
-       מוודא ששום הגדרת RTL לא חודרת פנימה
        ========================================= */
     .katex, .katex-display, .katex * {
         direction: ltr !important;
@@ -122,16 +130,6 @@ def get_links_content():
                     combined_text += get_url_text(link)
     return combined_text
 
-def find_gemini_3_model():
-    try:
-        available = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        gemini_3_models = [m for m in available if 'gemini-3' in m]
-        if not gemini_3_models: return None
-        for preferred in ['models/gemini-3-pro', 'models/gemini-3-flash']:
-            if preferred in gemini_3_models: return preferred
-        return gemini_3_models[0]
-    except: return None
-
 # --- 3. לוגיקה וממשק מרכזי ---
 
 if "GOOGLE_API_KEY" in st.secrets:
@@ -147,9 +145,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-working_model = find_gemini_3_model()
-
-# הרשימה מהסילבוס
+# סילבוס
 categories = {
     "איפיון דרישות, אימות ותיקוף (V&V)": "פרט לעומק על PRD/TRD, מודל ה-V, Verification מול Validation וגזירת דרישות.",
     "שלבי פיתוח מוצר ובדיקות": "הרחב מאוד על PDR, CDR, NPI, ובדיקות ATP, QTP ו-ESS כולל מתודולוגיות.",
@@ -166,39 +162,59 @@ categories = {
     "תכן להרכבתיות ואמינות (DFA/DFS)": "סכם שיטות לצמצום טעויות הרכבה, נגישות לכלי עבודה ותחזוקתיות."
 }
 
+# הגדרת המודלים הזמינים לבחירה
+models_dict = {
+    "Gemini 3 Flash (מהיר - ברירת מחדל)": "models/gemini-3-flash",
+    "Gemini 3 Think (מחשבה והסקה עמוקה)": "models/gemini-3-think",
+    "Gemini 3 Pro (למשימות מורכבות במיוחד)": "models/gemini-3-pro"
+}
+
 with st.sidebar:
     st.header("🎛️ פאנל שליטה")
-    if working_model:
-        st.success(f"✔️ מודל פעיל: {working_model.split('/')[1]}")
-    else:
-        st.error("🚨 לא נמצא מודל Gemini 3 זמין.")
-        st.stop()
-        
+    
+    # בורר מודלים
+    selected_model_name = st.selectbox("בחר מודל עיבוד:", list(models_dict.keys()), index=0)
+    working_model = models_dict[selected_model_name]
+    
     st.divider()
-    st.subheader("בחירת נושא לימוד")
-    category = st.selectbox("סילבוס הנדסי:", list(categories.keys()), label_visibility="collapsed")
+    
+    st.subheader("הגדרות סיכום")
+    # בחירת קטגוריה ראשית
+    category = st.selectbox("נושא ראשי (סילבוס):", list(categories.keys()))
+    
+    # שדה טקסט חופשי למיקוד
+    focus_text = st.text_input("מיקוד ספציפי (אופציונלי):", placeholder="למשל: תתמקד בחישובי O-ring...")
+    
     st.divider()
     
     generate_btn = st.button("🚀 הפק סיכום מקיף", type="primary", use_container_width=True)
     st.caption("הסיכום יופק על בסיס קבצי ה-PDF והקישורים המוגדרים במאגר.")
 
 if generate_btn:
-    with st.spinner("סורק נתונים ומפיק תובנות הנדסיות..."):
+    with st.spinner(f"סורק נתונים באמצעות {selected_model_name.split(' ')[2]}..."):
         content = get_pdf_text() + get_links_content()
         
         if content.strip():
             try:
                 model = genai.GenerativeModel(working_model)
+                
+                # בניית המשימה - מתחשב אם הוזן טקסט חופשי או לא
+                if focus_text.strip():
+                    task_instruction = f"משימה: הלקוח בחר בקטגוריית '{category}', אך ביקש למקד את הסיכום **אך ורק** בנושא הבא: {focus_text}. התעלם משאר נושאי הקטגוריה והרחב לעומק רק על המיקוד שביקש."
+                else:
+                    task_instruction = f"משימה: {categories[category]}"
+                
                 prompt = f"""
                 אתה מהנדס מכונות בכיר ומדריך טכני.
-                משימה: כתוב סיכום ארוך מאוד ומעמיק על הנושא הבא: {category}.
                 
-                הנחיות קריטיות:
+                {task_instruction}
+                
+                הנחיות קריטיות לביצוע:
                 1. התבסס אך ורק על המידע מהמקורות שסופקו.
-                2. הסבר בהרחבה את הלוגיקה ההנדסית.
+                2. הסבר בהרחבה את הלוגיקה ההנדסית ("הלמה" ו"האיך").
                 3. חלק את התשובה לכותרות ורשימות בולטים.
-                4. **הנחיה למשוואות:** כתוב את הנוסחאות ב-LaTeX סטנדרטי (Left-to-Right). אל תנסה להפוך אותן או להתאים אותן לעברית. המערכת תטפל בכיווניות. השתמש ב- $ עבור נוסחה בשורה ו- $$ עבור נוסחה מרכזית.
-                5. ספק תשובה ברמת Senior.
+                4. **הנחיה למשוואות:** כל נוסחה מתמטית חייבת להיכתב ב-LaTeX סטנדרטי משמאל לימין. השתמש ב- $ עבור משוואה בתוך השורה, וב- $$ למשוואה ממורכזת בשורה נפרדת. אל תנסה לתרגם או להפוך משתנים.
+                5. ספק תשובה ברמת Senior Mechanical Engineer להכנה לראיון.
                 
                 המקורות:
                 ---
@@ -208,11 +224,17 @@ if generate_btn:
                 """
                 response = model.generate_content(prompt)
                 
-                st.subheader(f"📚 נושא: {category}")
+                # הצגת הכותרת בהתאם למיקוד
+                display_title = f"📚 נושא: {category}"
+                if focus_text.strip():
+                    display_title += f" | מיקוד: {focus_text}"
+                    
+                st.subheader(display_title)
+                
                 with st.container(border=True):
                     st.markdown(response.text)
                     
             except Exception as e:
                 st.error(f"שגיאה בהפקת התוכן: {e}")
         else:
-            st.warning("לא נמצא תוכן במקורות שלך ב-GitHub.")
+            st.warning("לא נמצא תוכן במקורות שלך ב-GitHub (תיקיית pdfs או קובץ links.txt).")
