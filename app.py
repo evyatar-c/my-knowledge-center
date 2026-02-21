@@ -17,10 +17,27 @@ st.markdown("""
         font-family: 'Heebo', sans-serif;
     }
     
-    /* יישור לימין של אלמנטים טקסטואליים בלבד למניעת שבירת המבנה של Streamlit */
+    /* יישור לימין של אלמנטים טקסטואליים בסיסיים */
     .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, label, .stSelectbox, .stTextInput {
-        direction: RTL;
-        text-align: right;
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    
+    /* =========================================
+       תיקון ייעודי לרשימות (בולטים ומספרים)
+       ========================================= */
+    /* החלת כיווניות על הפסקאות ופריטי הרשימה */
+    .stMarkdown p, .stMarkdown li {
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    
+    /* סידור ההזחה (Padding) של הרשימות - ביטול שמאל והוספה בימין */
+    .stMarkdown ul, .stMarkdown ol {
+        direction: rtl !important;
+        padding-right: 2.5rem !important;
+        padding-left: 0 !important;
+        text-align: right !important;
     }
     
     /* העלמת כפתור הכיווץ של תפריט הצד - פותר את באג הארטיפקט החזותי */
@@ -28,7 +45,9 @@ st.markdown("""
         display: none !important;
     }
     
-    /* תיקון הרמטי לנוסחאות (KaTeX) שיישארו משמאל לימין */
+    /* =========================================
+       תיקון הרמטי לנוסחאות (KaTeX)
+       ========================================= */
     .katex, .katex-display, .katex * {
         direction: ltr !important;
         unicode-bidi: isolate !important;
@@ -79,15 +98,13 @@ else:
 def get_available_models():
     """
     מושך ישירות מהשרת את רשימת המודלים שזמינים למפתח הספציפי.
-    מונע שגיאות 404 על ידי שימוש בשמות המדויקים המורשים.
+    מונע שגיאות 404.
     """
     try:
         models = {}
-        # מקבל את כל המודלים התומכים ביצירת תוכן
         for m in genai.list_models():
             if 'generateContent' in m.supported_generation_methods:
                 name = m.name
-                # נסנן רק מודלים מתקדמים (Gemini)
                 if 'gemini' in name:
                     display_name = name.split('models/')[1]
                     models[display_name] = name
@@ -178,7 +195,6 @@ with st.sidebar:
         st.error("🚨 לא הצלחתי למשוך מודלים מהשרת. בדוק את ה-API Key.")
         st.stop()
         
-    # הצגת המודלים שבאמת זמינים בחשבון, כך שלעולם לא תהיה שגיאת 404
     selected_model_display = st.selectbox("בחר מודל עיבוד מורשה:", list(available_models.keys()))
     working_model = available_models[selected_model_display]
     
@@ -200,7 +216,7 @@ if generate_btn:
                 model = genai.GenerativeModel(working_model)
                 
                 if focus_text.strip():
-                    task_instruction = f"משימה: הלקוח בחר בקטגוריית '{category}', אך ביקש למקד את הסיכום **אך ורק** בנושא הבא: {focus_text}. התעלם משאר נושאי הקטגוריה והרחב לעומק רק על המיקוד שביקש."
+                    task_instruction = f"משימה: הלקוח בחר בקטגוריית '{category}', אך ביקש למקד את הסיכום אך ורק בנושא הבא: {focus_text}. התעלם משאר נושאי הקטגוריה והרחב לעומק רק על המיקוד שביקש."
                 else:
                     task_instruction = f"משימה: {categories[category]}"
                 
