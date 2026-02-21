@@ -26,7 +26,21 @@ st.markdown("""
         text-align: right !important;
     }
     
-    /* תיקון ייעודי לרשימות (בולטים ומספרים) */
+    /* =========================================
+       תיקון ייעודי לרשימות נפתחות (Dropdowns)
+       מיישר את המלל לימין בתוך אפשרויות הבחירה
+       ========================================= */
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="popover"],
+    ul[role="listbox"],
+    ul[role="listbox"] li,
+    li[role="option"],
+    div[role="option"] {
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    
+    /* תיקון ייעודי לרשימות בטקסט (בולטים ומספרים) */
     .stMarkdown p, .stMarkdown li {
         direction: rtl !important;
         text-align: right !important;
@@ -227,10 +241,10 @@ categories_data = {
         "הגדרות טיב שטח"
     ],
     "קורוזיה, ציפויים וטיפולי שטח": [
-        "סוגי מתכות, סגסוגות ועמידות לקורוזיה",
+        "סוגי מתכות, סוגי אלומיניום, פלדות ומגנזיום",
         "סוגי קורוזיה: רגילה, גלוונית, מאמצים",
         "שיקולי תכן במניעת קורוזיה גלוונית",
-        "שיקולים בבחירת ציפויים (אלומיניום, פלדה, מגנזיום)",
+        "שיקולים בבחירת ציפויים",
         "טבלת היתפסות ומניעת היתפסות (Galling)"
     ],
     "תכן לאטימות (IP & EMI)": [
@@ -315,7 +329,7 @@ if generate_btn:
         
         if raw_content.strip():
             try:
-                # הרכבת שאילתת חיפוש חזקה עבור ה-RAG (TF-IDF)
+                # הרכבת שאילתת חיפוש
                 search_query = main_category
                 if selected_sub_topic != "ללא":
                     search_query += " " + selected_sub_topic
@@ -373,6 +387,6 @@ if generate_btn:
                     st.markdown(response.text)
                     
             except Exception as e:
-                st.error(f"שגיאה בהפקת התוכן (יתכן וחריגת מכסה אם נבחרו מודלים כבדים ברצף): {e}")
+                st.error(f"שגיאה בהפקת התוכן: {e}")
         else:
             st.warning("לא נמצא תוכן במקורות שלך ב-GitHub (תיקיית pdfs או קובץ links.txt).")
