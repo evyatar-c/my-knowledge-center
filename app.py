@@ -6,7 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 from youtube_transcript_api import YouTubeTranscriptApi
 
-# --- 1. הגדרות דף ועיצוב CSS מתקדם ---
+# --- 1. הגדרות דף ועיצוב CSS מתקדם (כולל תיקון למתמטיקה) ---
 st.set_page_config(page_title="מרכז ידע הנדסי - אביתר", layout="wide", page_icon="⚙️")
 
 st.markdown("""
@@ -44,6 +44,21 @@ st.markdown("""
         color: #e0e0e0;
         font-size: 1.2rem;
         margin-top: 0.5rem;
+    }
+    
+    /* =========================================
+       תיקון קריטי לשילוב נוסחאות מתמטיות ו-RTL
+       ========================================= */
+    .katex, .katex-display {
+        direction: ltr !important; /* כופה על הנוסחה להיות משמאל לימין */
+        unicode-bidi: isolate; /* מבודד את הנוסחה מהטקסט העברי שסביבה */
+    }
+    .katex-display {
+        text-align: center !important; /* ממורכז עבור נוסחאות גדולות */
+        margin: 1.5rem 0;
+    }
+    span.katex {
+        display: inline-block; /* מבטיח שנוסחה בתוך משפט תשב נכון באותה שורה */
     }
     
     /* עיצוב הודעות הסטטוס */
@@ -122,7 +137,6 @@ else:
     st.error("🚨 חסר API Key בתיקיית ה-Secrets של Streamlit!")
     st.stop()
 
-# הצגת הכותרת המעוצבת
 st.markdown("""
     <div class="main-header">
         <h1>⚙️ מרכז ידע הנדסי - Senior</h1>
@@ -132,7 +146,6 @@ st.markdown("""
 
 working_model = find_gemini_3_model()
 
-# סילבוס
 categories = {
     "איפיון דרישות, אימות ותיקוף (V&V)": "פרט לעומק על PRD/TRD, מודל ה-V, Verification מול Validation וגזירת דרישות.",
     "שלבי פיתוח מוצר ובדיקות": "הרחב מאוד על PDR, CDR, NPI, ובדיקות ATP, QTP ו-ESS כולל מתודולוגיות.",
@@ -149,10 +162,8 @@ categories = {
     "תכן להרכבתיות ואמינות (DFA/DFS)": "סכם שיטות לצמצום טעויות הרכבה, נגישות לכלי עבודה ותחזוקתיות."
 }
 
-# תפריט צד מעוצב
 with st.sidebar:
     st.header("🎛️ פאנל שליטה")
-    
     if working_model:
         st.success(f"✔️ מודל פעיל: {working_model.split('/')[1]}")
     else:
@@ -160,18 +171,13 @@ with st.sidebar:
         st.stop()
         
     st.divider()
-    
     st.subheader("בחירת נושא לימוד")
     category = st.selectbox("סילבוס הנדסי:", list(categories.keys()), label_visibility="collapsed")
-    
     st.divider()
     
-    # כפתור פעולה מודגש ברוחב מלא
     generate_btn = st.button("🚀 הפק סיכום מקיף", type="primary", use_container_width=True)
-    
     st.caption("הסיכום יופק על בסיס קבצי ה-PDF והקישורים המוגדרים במאגר.")
 
-# עיבוד התוכן והצגתו
 if generate_btn:
     with st.spinner("סורק נתונים ומפיק תובנות הנדסיות..."):
         content = get_pdf_text() + get_links_content()
@@ -181,14 +187,16 @@ if generate_btn:
                 model = genai.GenerativeModel(working_model)
                 prompt = f"""
                 אתה מהנדס מכונות בכיר ומדריך טכני.
-                משימה: כתוב סיכום **ארוך מאוד, מפורט, מקצועי ומעמיק** על הנושא הבא: {category}.
+                משימה: כתוב סיכום ארוך מאוד ומעמיק על הנושא הבא: {category}.
                 
                 הנחיות קריטיות:
                 1. התבסס אך ורק על המידע מהמקורות שסופקו.
-                2. הסבר בהרחבה את הלוגיקה ההנדסית ("הלמה" וה"איך").
-                3. חלק את התשובה לכותרות ברורות, תתי-כותרות ורשימות בולטים ארוכות ומפורטות.
-                4. אל תחסוך במילים! אני זקוק לכל פרט טכני, נוסחה, תקן או דוגמה שמופיעים במקורות.
-                5. ספק תשובה ברמת Senior Mechanical Engineer להכנה לראיון עבודה.
+                2. הסבר בהרחבה את הלוגיקה ההנדסית.
+                3. חלק את התשובה לכותרות ורשימות בולטים.
+                4. **הנחיה מתמטית:** כל נוסחה, משוואה או משתנה מתמטי שאתה מציג, **חובה** לכתוב בפורמט LaTeX תקני.
+                   - השתמש בסימון דולר בודד ($) לנוסחאות בתוך השורה (למשל: כוח השווה ל- $F = m \\cdot a$).
+                   - השתמש בסימון דולר כפול ($$) לנוסחאות מרכזיות וגדולות בשורה נפרדת.
+                5. ספק תשובה ברמת Senior.
                 
                 המקורות:
                 ---
@@ -198,7 +206,6 @@ if generate_btn:
                 """
                 response = model.generate_content(prompt)
                 
-                # הצגת התוכן בתוך "כרטיסייה" מסגרתית ומעוצבת
                 st.subheader(f"📚 נושא: {category}")
                 with st.container(border=True):
                     st.markdown(response.text)
@@ -206,4 +213,4 @@ if generate_btn:
             except Exception as e:
                 st.error(f"שגיאה בהפקת התוכן: {e}")
         else:
-            st.warning("לא נמצא תוכן במקורות שלך ב-GitHub (תיקיית pdfs או קובץ links.txt).")
+            st.warning("לא נמצא תוכן במקורות שלך ב-GitHub.")
