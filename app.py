@@ -9,7 +9,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
-# --- 1. הגדרות דף ועיצוב CSS מתקדם (שומר על כל התיקונים) ---
+# --- 1. הגדרות דף ועיצוב CSS מתקדם ---
 st.set_page_config(page_title="מרכז ידע הנדסי", layout="wide", page_icon="⚙️")
 
 st.markdown("""
@@ -38,12 +38,12 @@ st.markdown("""
         text-align: right !important;
     }
     
-    /* העלמת כפתור הכיווץ של תפריט הצד - פותר את באג הארטיפקט */
+    /* העלמת כפתור הכיווץ של תפריט הצד */
     [data-testid="collapsedControl"] {
         display: none !important;
     }
     
-    /* תיקון הרמטי לנוסחאות (KaTeX) */
+    /* תיקון הרמטי לנוסחאות (KaTeX) משמאל לימין */
     .katex, .katex-display, .katex * {
         direction: ltr !important;
         unicode-bidi: isolate !important;
@@ -158,10 +158,9 @@ def get_links_content():
                     combined_text += get_url_text(link)
     return combined_text
 
-# --- 3. מנוע RAG חכם (זיכרון וחיפוש ב-RAM) ---
+# --- 3. מנוע RAG חכם ---
 
 def chunk_text(text, chunk_size=1500, overlap=300):
-    """חותך את המידע למקטעים עם חפיפה כדי לא לפספס הקשר"""
     chunks = []
     start = 0
     while start < len(text):
@@ -171,18 +170,13 @@ def chunk_text(text, chunk_size=1500, overlap=300):
     return chunks
 
 def retrieve_top_chunks(query, chunks, top_k=20):
-    """שולף את המקטעים הרלוונטיים ביותר מתוך הזיכרון באמצעות אלגוריתם TF-IDF"""
     if not chunks: return ""
     if len(chunks) <= top_k: return "\n...\n".join(chunks)
     
     vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform(chunks + [query])
     cosine_similarities = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1]).flatten()
-    
-    # שליפת האינדקסים של המקטעים עם הציון הגבוה ביותר
     top_indices = cosine_similarities.argsort()[-top_k:][::-1]
-    
-    # סידור מחדש לפי סדר הופעה במסמך כדי לשמור על רצף קריאה הגיוני למודל
     top_indices = sorted(top_indices) 
     return "\n...\n".join([chunks[i] for i in top_indices])
 
@@ -195,20 +189,95 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-categories = {
-    "איפיון דרישות, אימות ותיקוף (V&V)": "פרט לעומק על PRD/TRD, מודל ה-V, Verification מול Validation וגזירת דרישות.",
-    "שלבי פיתוח מוצר ובדיקות": "הרחב מאוד על PDR, CDR, NPI, ובדיקות ATP, QTP ו-ESS כולל מתודולוגיות.",
-    "ניהול סיכונים הנדסי": "סכם בפירוט רב ניהול סיכונים טכני, FMEA ודגמי היתכנות POD.",
-    "טכנולוגיות ייצור": "פרט על CNC, יציקות, DFM והדפסות תלת-ממד כולל שיקולי בחירה הנדסיים.",
-    "סובלנויות ו-GD&T": "פרט לעומק על בקרות גיאומטריות, צבירת טולרנסים RSS/Worst Case והתאמות Fits.",
-    "קורוזיה, ציפויים וטיפולי שטח": "סכם בהרחבה מנגנוני קורוזיה, בחירת ציפויים ומניעת היתפסות (Galling).",
-    "תכן לאטימות (IP & EMI)": "פרט לעומק על אטימה סביבתית, סיכוך EMI, חריצים ואטמים.",
-    "שיקולי תכן תרמי": "הרחב מאוד על מנגנוני העברת חום, ניהול תרמי במארזים וחישובי טמפרטורת צומת.",
-    "תכן פלסטיק וחומרים": "סכם תכן להזרקת פלסטיק, זוויות חליצה, פגמים ופולימרים הנדסיים.",
-    "תכן כרטיסים אלקטרוניים (PCB)": "פרט לעומק על זיווד כרטיסים, Rigid-Flex ומגבלות ייצור.",
-    "היבטי עלות וניהול פרויקט": "סכם תהליכי DTC, שימוש ב-COTS ומבנה תוכניות עבודה (גאנט).",
-    "אנליזות וחישובים הנדסיים": "פרט על אנליזות Von Mises, רעידות והלמים וחישובים תרמו-מכניים.",
-    "תכן להרכבתיות ואמינות (DFA/DFS)": "סכם שיטות לצמצום טעויות הרכבה, נגישות לכלי עבודה ותחזוקתיות."
+# מיפוי קטגוריות ותתי נושאים מהסילבוס
+categories_data = {
+    "איפיון דרישות, אימות ותיקוף (V&V)": [
+        "איפיון דרישות: הבחנה בין PRD ל-TRD וגזירת דרישות",
+        "מודל ה-V: הקשר המבני בין דרישות לבדיקות",
+        "שיטות אימות (Verification): אנליזה, בחינה, ניסוי, הדגמה",
+        "תיקוף (Validation): הוכחה מול צורכי המשתמש"
+    ],
+    "שלבי פיתוח מוצר ובדיקות הוכחה": [
+        "מחזור חיי פיתוח: PDR, CDR, NPI",
+        "בדיקות קבלה (ATP) ליחידות בייצור סדרתי",
+        "בדיקות הסמכה (QTP) לעמידה בתנאי סביבה",
+        "סינון סביבתי (ESS) ואיתור כשלי ייצור",
+        "בחינת מוצר ראשון מקו ייצור FAI"
+    ],
+    "ניהול סיכונים הנדסי": [
+        "צמצום סיכונים (POD - Proof of Design) וניסויי היתכנות",
+        "טבלת ניהול סיכונים: זיהוי, חומרה, הפחתה ותוכניות מגירה",
+        "ניתוח FMEA - מצבי כשל פוטנציאליים"
+    ],
+    "טכנולוגיות ייצור (Conventional & Advanced)": [
+        "ייצור גורע: עיבוד שבבי, אירוזיה, לייזר ו-DFM",
+        "יציקות מתכת: Die Cast, יציקות חול ושעווה אבודה",
+        "ייצור מוסף (הדפסות תלת-ממד) ואופטימיזציה",
+        "הזרקות פלסטיק",
+        "חיבור בריתוך או הדבקה",
+        "שיטות עיצוב מתכת (Forming): ערגול, אקסטרוזיה, חישול"
+    ],
+    "סובלנויות ו-GD&T": [
+        "שליטה בבקרות גיאומטריות (מיקום, צורה, תנוחה)",
+        "מושג Virtual Condition ועקרונות MMC/LMC",
+        "הגדרת דאטומים וסימונים (projection, envelope)",
+        "ניתוח צבירת טולרנסים (Worst Case מול RSS)",
+        "מציאת טולרנסים (Fixed vs Floating fastener)",
+        "התאמות (Fits) ואפיצויות גל וקדח",
+        "הגדרות טיב שטח"
+    ],
+    "קורוזיה, ציפויים וטיפולי שטח": [
+        "סוגי מתכות, סגסוגות ועמידות לקורוזיה",
+        "סוגי קורוזיה: רגילה, גלוונית, מאמצים",
+        "שיקולי תכן במניעת קורוזיה גלוונית",
+        "שיקולים בבחירת ציפויים (אלומיניום, פלדה, מגנזיום)",
+        "טבלת היתפסות ומניעת היתפסות (Galling)"
+    ],
+    "תכן לאטימות (IP & EMI)": [
+        "אטימות סביבתית: רמות IP ושיקולי תכן",
+        "תכן אטמים (O-rings) וחישובי דחיסה",
+        "חריצי ניקוז, אוורור ושקיות ייבוש",
+        "בדיקות דליפה ומקורות דליפה",
+        "אטימות אלקטרומגנטית (EMI) ורציפות חשמלית"
+    ],
+    "שיקולי תכן תרמי": [
+        "מנגנוני מעבר חום (הולכה, הסעה וקרינה)",
+        "משוואות חום ושרשרת נגדים (טור/מקביל)",
+        "מנגנוני פינוי חום ומציאת טמפ' צומת",
+        "בחירת גופי קירור (Heat Sinks) ו-TIM",
+        "סימולציות לחזוי טמפרטורות צומת"
+    ],
+    "תכן פלסטיק וחומרים מתקדמים": [
+        "תכן להזרקה: זוויות חליצה, עובי דופן, מניעת פגמים",
+        "עבודה עם פולימרים הנדסיים (ULTEM, טיפולים תרמיים)"
+    ],
+    "תכן כרטיסים אלקטרוניים (PCB)": [
+        "שיקולי תכן, מערכת צירים ומגבלות עריכה",
+        "קדחי דפינה, ICT, מצופים/לא מצופים",
+        "גמיש קשיח: רדיוסים ומספר עלים",
+        "שרטוטים לכרטיס, בדיקות BA וסימוכי ייצור",
+        "שלבי ייצור והרכבה של כרטיסים",
+        "ציפויים קונפורמיים וחומרי צרירה",
+        "הגדרות טאבים וחיתוך טאבים"
+    ],
+    "היבטי עלות וניהול פרויקט": [
+        "Design to Cost (DTC) וזיהוי זוללי עלות",
+        "מודלי ניהול פיתוח: BTP לעומת BTS",
+        "שימוש ברכיבי מדף (COTS/MOTS)",
+        "מבנה תוכנית עבודה (גאנט, אבני דרך, מסירות)"
+    ],
+    "אנליזות וחישובים הנדסיים": [
+        "אנליזות חוזק (Von Mises, כפיפה, על/תת לחץ)",
+        "מאמצים בבורג בהידוק מכלולים",
+        "אנליזות רעידות (תדרים עצמיים, תאוצות ושקיעות)",
+        "אנליזות תרמו-מכניות (מחזורים תרמיים, התפשטות, גזירה)",
+        "אנליזות ויסקו פלסטיות",
+        "ניסויי תיקוף (תקני IPC, מדידת תאוצות)"
+    ],
+    "תכן להרכבתיות ואמינות (DFA/DFS)": [
+        "תכן להרכבתיות (צמצום טעויות, נגישות, סדר הרכבה)",
+        "אמינות ותחזוקתיות (MTTR, החלפת יחידות LRU)"
+    ]
 }
 
 available_models = get_available_models()
@@ -225,51 +294,65 @@ with st.sidebar:
     
     st.divider()
     st.subheader("הגדרות סיכום")
-    category = st.selectbox("נושא ראשי (סילבוס):", list(categories.keys()))
-    focus_text = st.text_input("מיקוד ספציפי (אופציונלי):", placeholder="למשל: תתמקד בחישובי O-ring...")
+    
+    # נושא ראשי
+    main_category = st.selectbox("נושא ראשי (סילבוס):", list(categories_data.keys()))
+    
+    # תת נושא - נגזר מהנושא הראשי
+    sub_topic_options = ["ללא"] + categories_data[main_category]
+    selected_sub_topic = st.selectbox("תת-נושא להעמקה:", sub_topic_options)
+    
+    # מיקוד חופשי
+    focus_text = st.text_input("מיקוד ספציפי (מלל חופשי אופציונלי):", placeholder="למשל: תתמקד בחישובי O-ring...")
     
     st.divider()
     generate_btn = st.button("🚀 הפק סיכום מקיף", type="primary", use_container_width=True)
 
 if generate_btn:
-    with st.spinner(f"בונה אינדקס, מחפש מקורות ומעבד נתונים בעזרת {selected_model_display}..."):
+    with st.spinner(f"בונה אינדקס, שולף מקורות מדויקים ומעבד בעזרת {selected_model_display}..."):
         
-        # 1. טעינת כל החומר
         raw_content = get_pdf_text() + get_links_content()
         
         if raw_content.strip():
             try:
-                # 2. חיתוך החומר ושליפה חכמה של ה-20 מקטעים הרלוונטיים ביותר
+                # הרכבת שאילתת חיפוש חזקה עבור ה-RAG (TF-IDF)
+                search_query = main_category
+                if selected_sub_topic != "ללא":
+                    search_query += " " + selected_sub_topic
+                if focus_text.strip():
+                    search_query += " " + focus_text.strip()
+                    
                 chunks = chunk_text(raw_content)
-                search_query = focus_text if focus_text.strip() else category
                 relevant_content = retrieve_top_chunks(search_query, chunks)
                 
-                # 3. הגדרת התצורה (מקסימום טוקנים פלט, טמפרטורה נמוכה לדיוק)
+                # הרכבת ההוראה (Prompt) למודל
+                task_instruction = f"הנושא הראשי: {main_category}.\n"
+                if selected_sub_topic != "ללא":
+                    task_instruction += f"תת-הנושא להתמקדות: {selected_sub_topic}.\n"
+                if focus_text.strip():
+                    task_instruction += f"מיקוד ספציפי וחשוב: {focus_text}.\n"
+                
+                task_instruction += "עלייך לייצר מסמך לימוד מקיף, מעמיק ומפורט ככל האפשר סביב המיקוד שהתבקש, תוך התעלמות מנושאים לא קשורים באותה קטגוריה. ספק צלילת עומק הנדסית ומפורטת למיקוד זה."
+
                 generation_config = genai.types.GenerationConfig(
                     max_output_tokens=8192,
                     temperature=0.3
                 )
                 model = genai.GenerativeModel(working_model, generation_config=generation_config)
                 
-                if focus_text.strip():
-                    task_instruction = f"משימה: הלקוח בחר בקטגוריית '{category}', אך ביקש למקד את הסיכום אך ורק בנושא הבא: {focus_text}. התעלם משאר נושאי הקטגוריה. ספק צלילת עומק הנדסית ומפורטת לנושא זה בלבד."
-                else:
-                    task_instruction = f"משימה: {categories[category]}"
-                
                 prompt = f"""
-                אתה מהנדס מכונות בכיר ומדריך טכני. המטרה שלך היא לייצר מסמך לימוד מקיף, מעמיק ומפורט ככל האפשר.
-                איסור מוחלט על תמצות: אל תשמיט שום פרט טכני, הסבר מנגנונים לעומק ואל תדלג על שלבים בתיאור.
+                אתה מהנדס מכונות בכיר ומדריך טכני. 
                 
                 {task_instruction}
                 
                 הנחיות קריטיות לביצוע:
                 1. התבסס אך ורק על המידע מהמקורות שסופקו למטה.
-                2. הסבר בהרחבה את הלוגיקה ההנדסית ("הלמה" ו"האיך"). צלול לפרטים המיקרוסקופיים והמקרוסקופיים.
+                2. הסבר בהרחבה את הלוגיקה ההנדסית ("הלמה" ו"האיך"). אל תתמצת כלל!
                 3. חלק את התשובה לכותרות ראשיות, כותרות משנה, ורשימות בולטים ארוכות ומפורטות.
                 4. **הנחיה למשוואות:** כל נוסחה מתמטית חייבת להיכתב ב-LaTeX סטנדרטי משמאל לימין. השתמש ב- $ עבור משוואה בתוך השורה, וב- $$ למשוואה ממורכזת בשורה נפרדת.
-                5. ספק תשובה ארוכה מאוד ברמת Senior Mechanical Engineer.
+                5. ספק תשובה מקצועית, אובייקטיבית וקרה, ברמת Senior Mechanical Engineer.
                 
-                המקורות שנשלפו מהמאגר שלך:
+                המקורות שנשלפו מהמאגר:
                 ---
                 {relevant_content}
                 ---
@@ -277,7 +360,10 @@ if generate_btn:
                 """
                 response = model.generate_content(prompt)
                 
-                display_title = f"📚 נושא: {category}"
+                # בניית כותרת התצוגה הדינמית
+                display_title = f"📚 {main_category}"
+                if selected_sub_topic != "ללא":
+                    display_title += f" | {selected_sub_topic.split(':')[0]}"
                 if focus_text.strip():
                     display_title += f" | מיקוד: {focus_text}"
                     
@@ -287,6 +373,6 @@ if generate_btn:
                     st.markdown(response.text)
                     
             except Exception as e:
-                st.error(f"שגיאה בהפקת התוכן (יתכן וחריגת מכסה אם נבחרו מודלים כבדים מדי ברצף): {e}")
+                st.error(f"שגיאה בהפקת התוכן (יתכן וחריגת מכסה אם נבחרו מודלים כבדים ברצף): {e}")
         else:
             st.warning("לא נמצא תוכן במקורות שלך ב-GitHub (תיקיית pdfs או קובץ links.txt).")
