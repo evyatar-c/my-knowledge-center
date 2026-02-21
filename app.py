@@ -6,23 +6,56 @@ import requests
 from bs4 import BeautifulSoup
 from youtube_transcript_api import YouTubeTranscriptApi
 
-# --- 1. הגדרות עיצוב ויישור לימין (RTL) ---
-st.set_page_config(page_title="מרכז ידע הנדסי - אביתר", layout="wide")
+# --- 1. הגדרות דף ועיצוב CSS מתקדם ---
+st.set_page_config(page_title="מרכז ידע הנדסי - אביתר", layout="wide", page_icon="⚙️")
+
 st.markdown("""
     <style>
-    [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
+    @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700&display=swap');
+    
+    /* הגדרת פונט ויישור לימין לכל האפליקציה */
+    html, body, [class*="css"] {
+        font-family: 'Heebo', sans-serif;
         direction: RTL;
         text-align: right;
     }
-    p, li, h1, h2, h3, h4, h5, h6, span, label {
+    p, li, h1, h2, h3, h4, h5, h6, span, label, div {
         direction: RTL;
         text-align: right;
+    }
+    
+    /* עיצוב כותרת ראשית (Banner) */
+    .main-header {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .main-header h1 {
+        color: white;
+        font-size: 2.8rem;
+        margin: 0;
+        font-weight: 700;
+    }
+    .main-header p {
+        color: #e0e0e0;
+        font-size: 1.2rem;
+        margin-top: 0.5rem;
+    }
+    
+    /* עיצוב הודעות הסטטוס */
+    div[data-testid="stAlert"] {
+        border-radius: 8px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. פונקציות עזר למשיכת מידע ---
+# --- 2. פונקציות משיכת מידע ---
 
+@st.cache_data(show_spinner=False)
 def get_url_text(url):
     try:
         response = requests.get(url, timeout=10)
@@ -31,6 +64,7 @@ def get_url_text(url):
         return f"\n--- תוכן מהאתר {url} ---\n" + soup.get_text()
     except: return ""
 
+@st.cache_data(show_spinner=False)
 def get_youtube_text(url):
     try:
         if "v=" in url: video_id = url.split("v=")[1].split("&")[0]
@@ -40,6 +74,7 @@ def get_youtube_text(url):
         return f"\n--- תמלול מיוטיוב {url} ---\n" + text
     except: return ""
 
+@st.cache_data(show_spinner=False)
 def get_pdf_text():
     text = ""
     pdf_folder = "pdfs"
@@ -55,6 +90,7 @@ def get_pdf_text():
             except: continue
     return text
 
+@st.cache_data(show_spinner=False)
 def get_links_content():
     combined_text = ""
     if os.path.exists('links.txt'):
@@ -69,27 +105,16 @@ def get_links_content():
     return combined_text
 
 def find_gemini_3_model():
-    """סורק ומוצא אך ורק מודלים ממשפחת Gemini 3"""
     try:
-        # קבלת רשימת המודלים התומכים ביצירת תוכן
         available = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        
-        # סינון קפדני: רק מודלים המכילים "gemini-3" בשם שלהם
         gemini_3_models = [m for m in available if 'gemini-3' in m]
-        
-        if not gemini_3_models:
-            return None
-            
-        # סדר עדיפויות בתוך משפחת Gemini 3
+        if not gemini_3_models: return None
         for preferred in ['models/gemini-3-pro', 'models/gemini-3-flash']:
-            if preferred in gemini_3_models:
-                return preferred
-        
-        return gemini_3_models[0] # החזרת הראשון שנמצא אם המועדפים לא קיימים
-    except Exception as e:
-        return None
+            if preferred in gemini_3_models: return preferred
+        return gemini_3_models[0]
+    except: return None
 
-# --- 3. לוגיקה מרכזית ---
+# --- 3. לוגיקה וממשק מרכזי ---
 
 if "GOOGLE_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -97,12 +122,17 @@ else:
     st.error("🚨 חסר API Key בתיקיית ה-Secrets של Streamlit!")
     st.stop()
 
-st.title("🤖 מרכז ידע הנדסי - Gemini 3 בלבד")
+# הצגת הכותרת המעוצבת
+st.markdown("""
+    <div class="main-header">
+        <h1>⚙️ מרכז ידע הנדסי - Senior</h1>
+        <p>מערכת סיכומים חכמה מבוססת Gemini 3 | הכנה לראיונות תכן מכני</p>
+    </div>
+""", unsafe_allow_html=True)
 
-# איתור מודל Gemini 3 בלבד
 working_model = find_gemini_3_model()
 
-# רשימת הקטגוריות המלאה מהסילבוס
+# סילבוס
 categories = {
     "איפיון דרישות, אימות ותיקוף (V&V)": "פרט לעומק על PRD/TRD, מודל ה-V, Verification מול Validation וגזירת דרישות.",
     "שלבי פיתוח מוצר ובדיקות": "הרחב מאוד על PDR, CDR, NPI, ובדיקות ATP, QTP ו-ESS כולל מתודולוגיות.",
@@ -119,29 +149,42 @@ categories = {
     "תכן להרכבתיות ואמינות (DFA/DFS)": "סכם שיטות לצמצום טעויות הרכבה, נגישות לכלי עבודה ותחזוקתיות."
 }
 
-# תפריט צד
-st.sidebar.header("הגדרות וניווט")
-if working_model:
-    st.sidebar.success(f"מודל Gemini 3 פעיל: {working_model}")
-else:
-    st.sidebar.error("🚨 לא נמצא מודל Gemini 3 זמין בחשבון זה. האפליקציה דורשת Gemini 3 ומעלה.")
-    st.stop()
+# תפריט צד מעוצב
+with st.sidebar:
+    st.header("🎛️ פאנל שליטה")
+    
+    if working_model:
+        st.success(f"✔️ מודל פעיל: {working_model.split('/')[1]}")
+    else:
+        st.error("🚨 לא נמצא מודל Gemini 3 זמין.")
+        st.stop()
+        
+    st.divider()
+    
+    st.subheader("בחירת נושא לימוד")
+    category = st.selectbox("סילבוס הנדסי:", list(categories.keys()), label_visibility="collapsed")
+    
+    st.divider()
+    
+    # כפתור פעולה מודגש ברוחב מלא
+    generate_btn = st.button("🚀 הפק סיכום מקיף", type="primary", use_container_width=True)
+    
+    st.caption("הסיכום יופק על בסיס קבצי ה-PDF והקישורים המוגדרים במאגר.")
 
-category = st.sidebar.selectbox("בחר נושא לסיכום מפורט:", list(categories.keys()))
-
-if st.sidebar.button("הפק סיכום מקיף ומפורט"):
-    with st.spinner("Gemini 3 מנתח את כל המאגר (PDF + אתרים + יוטיוב)..."):
+# עיבוד התוכן והצגתו
+if generate_btn:
+    with st.spinner("סורק נתונים ומפיק תובנות הנדסיות..."):
         content = get_pdf_text() + get_links_content()
         
         if content.strip():
             try:
                 model = genai.GenerativeModel(working_model)
                 prompt = f"""
-                אתה מהנדס מכונות בכיר ומדריך טכני המשתמש ביכולות Gemini 3 לניתוח מעמיק.
+                אתה מהנדס מכונות בכיר ומדריך טכני.
                 משימה: כתוב סיכום **ארוך מאוד, מפורט, מקצועי ומעמיק** על הנושא הבא: {category}.
                 
                 הנחיות קריטיות:
-                1. התבסס אך ורק על המידע מהמקורות שסופקו (PDF, אתרים ותמלולי יוטיוב).
+                1. התבסס אך ורק על המידע מהמקורות שסופקו.
                 2. הסבר בהרחבה את הלוגיקה ההנדסית ("הלמה" וה"איך").
                 3. חלק את התשובה לכותרות ברורות, תתי-כותרות ורשימות בולטים ארוכות ומפורטות.
                 4. אל תחסוך במילים! אני זקוק לכל פרט טכני, נוסחה, תקן או דוגמה שמופיעים במקורות.
@@ -154,12 +197,13 @@ if st.sidebar.button("הפק סיכום מקיף ומפורט"):
                 כתוב בעברית טכנית ברמה גבוהה מאוד.
                 """
                 response = model.generate_content(prompt)
-                st.header(category)
-                st.markdown(response.text)
+                
+                # הצגת התוכן בתוך "כרטיסייה" מסגרתית ומעוצבת
+                st.subheader(f"📚 נושא: {category}")
+                with st.container(border=True):
+                    st.markdown(response.text)
+                    
             except Exception as e:
                 st.error(f"שגיאה בהפקת התוכן: {e}")
         else:
             st.warning("לא נמצא תוכן במקורות שלך ב-GitHub (תיקיית pdfs או קובץ links.txt).")
-
-st.sidebar.divider()
-st.sidebar.caption("מבוסס על המאגר הקבוע ב-GitHub")
