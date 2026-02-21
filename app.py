@@ -6,22 +6,42 @@ import requests
 from bs4 import BeautifulSoup
 from youtube_transcript_api import YouTubeTranscriptApi
 
-# --- 1. הגדרות דף ועיצוב CSS מתקדם (כולל תיקון למתמטיקה) ---
+# --- 1. הגדרות דף ועיצוב CSS מתקדם ---
 st.set_page_config(page_title="מרכז ידע הנדסי - אביתר", layout="wide", page_icon="⚙️")
 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700&display=swap');
     
-    /* הגדרת פונט ויישור לימין לכל האפליקציה */
+    /* הגדרת פונט וכיוון כללי */
     html, body, [class*="css"] {
         font-family: 'Heebo', sans-serif;
         direction: RTL;
         text-align: right;
     }
-    p, li, h1, h2, h3, h4, h5, h6, span, label, div {
+    
+    /* יישור טקסט עברי בלבד! (הורדנו את ה-span וה-div כדי לא לדפוק את הנוסחאות) */
+    p, li, h1, h2, h3, h4, h5, h6, label {
         direction: RTL;
         text-align: right;
+    }
+    
+    /* =========================================
+       תיקון הרמטי לנוסחאות (KaTeX)
+       מוודא ששום הגדרת RTL לא חודרת פנימה
+       ========================================= */
+    .katex, .katex-display, .katex * {
+        direction: ltr !important;
+        unicode-bidi: isolate !important;
+    }
+    .katex-display {
+        text-align: center !important;
+        margin: 1.5rem auto !important;
+        display: block;
+    }
+    span.katex {
+        display: inline-block;
+        direction: ltr !important;
     }
     
     /* עיצוב כותרת ראשית (Banner) */
@@ -45,23 +65,6 @@ st.markdown("""
         font-size: 1.2rem;
         margin-top: 0.5rem;
     }
-    
-    /* =========================================
-       תיקון קריטי לשילוב נוסחאות מתמטיות ו-RTL
-       ========================================= */
-    .katex, .katex-display {
-        direction: ltr !important; /* כופה על הנוסחה להיות משמאל לימין */
-        unicode-bidi: isolate; /* מבודד את הנוסחה מהטקסט העברי שסביבה */
-    }
-    .katex-display {
-        text-align: center !important; /* ממורכז עבור נוסחאות גדולות */
-        margin: 1.5rem 0;
-    }
-    span.katex {
-        display: inline-block; /* מבטיח שנוסחה בתוך משפט תשב נכון באותה שורה */
-    }
-    
-    /* עיצוב הודעות הסטטוס */
     div[data-testid="stAlert"] {
         border-radius: 8px;
     }
@@ -146,6 +149,7 @@ st.markdown("""
 
 working_model = find_gemini_3_model()
 
+# הרשימה מהסילבוס
 categories = {
     "איפיון דרישות, אימות ותיקוף (V&V)": "פרט לעומק על PRD/TRD, מודל ה-V, Verification מול Validation וגזירת דרישות.",
     "שלבי פיתוח מוצר ובדיקות": "הרחב מאוד על PDR, CDR, NPI, ובדיקות ATP, QTP ו-ESS כולל מתודולוגיות.",
@@ -193,9 +197,7 @@ if generate_btn:
                 1. התבסס אך ורק על המידע מהמקורות שסופקו.
                 2. הסבר בהרחבה את הלוגיקה ההנדסית.
                 3. חלק את התשובה לכותרות ורשימות בולטים.
-                4. **הנחיה מתמטית:** כל נוסחה, משוואה או משתנה מתמטי שאתה מציג, **חובה** לכתוב בפורמט LaTeX תקני.
-                   - השתמש בסימון דולר בודד ($) לנוסחאות בתוך השורה (למשל: כוח השווה ל- $F = m \\cdot a$).
-                   - השתמש בסימון דולר כפול ($$) לנוסחאות מרכזיות וגדולות בשורה נפרדת.
+                4. **הנחיה למשוואות:** כתוב את הנוסחאות ב-LaTeX סטנדרטי (Left-to-Right). אל תנסה להפוך אותן או להתאים אותן לעברית. המערכת תטפל בכיווניות. השתמש ב- $ עבור נוסחה בשורה ו- $$ עבור נוסחה מרכזית.
                 5. ספק תשובה ברמת Senior.
                 
                 המקורות:
