@@ -7,37 +7,28 @@ from bs4 import BeautifulSoup
 from youtube_transcript_api import YouTubeTranscriptApi
 
 # --- 1. הגדרות דף ועיצוב CSS מתקדם ---
-st.set_page_config(page_title="מרכז ידע הנדסי - אביתר", layout="wide", page_icon="⚙️")
+st.set_page_config(page_title="מרכז ידע הנדסי", layout="wide", page_icon="⚙️")
 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700&display=swap');
     
-    /* הגדרת פונט כללי */
     html, body, [class*="css"] {
         font-family: 'Heebo', sans-serif;
     }
     
-    /* יישור לימין של התוכן המרכזי בלבד - מונע באגים בתפריט הצד */
-    [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+    /* יישור לימין של אלמנטים טקסטואליים בלבד למניעת שבירת המבנה של Streamlit */
+    .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, label, .stSelectbox, .stTextInput {
         direction: RTL;
         text-align: right;
     }
     
-    /* החלת RTL רק על התוכן *בתוך* תפריט הצד, כדי לא לשבור את כפתור הכיווץ וידית ההרחבה */
-    [data-testid="stSidebarUserContent"] {
-        direction: RTL;
-        text-align: right;
+    /* העלמת כפתור הכיווץ של תפריט הצד - פותר את באג הארטיפקט החזותי */
+    [data-testid="collapsedControl"] {
+        display: none !important;
     }
     
-    p, li, h1, h2, h3, h4, h5, h6, label {
-        direction: RTL;
-        text-align: right;
-    }
-    
-    /* =========================================
-       תיקון הרמטי לנוסחאות (KaTeX)
-       ========================================= */
+    /* תיקון הרמטי לנוסחאות (KaTeX) שיישארו משמאל לימין */
     .katex, .katex-display, .katex * {
         direction: ltr !important;
         unicode-bidi: isolate !important;
@@ -52,7 +43,7 @@ st.markdown("""
         direction: ltr !important;
     }
     
-    /* עיצוב כותרת ראשית (Banner) */
+    /* עיצוב כותרת ראשית */
     .main-header {
         background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         color: white;
@@ -73,13 +64,36 @@ st.markdown("""
         font-size: 1.2rem;
         margin-top: 0.5rem;
     }
-    div[data-testid="stAlert"] {
-        border-radius: 8px;
-    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. פונקציות משיכת מידע ---
+# --- 2. פונקציות משיכת מידע וחיבור ---
+
+if "GOOGLE_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+else:
+    st.error("🚨 חסר API Key בתיקיית ה-Secrets של Streamlit!")
+    st.stop()
+
+@st.cache_resource
+def get_available_models():
+    """
+    מושך ישירות מהשרת את רשימת המודלים שזמינים למפתח הספציפי.
+    מונע שגיאות 404 על ידי שימוש בשמות המדויקים המורשים.
+    """
+    try:
+        models = {}
+        # מקבל את כל המודלים התומכים ביצירת תוכן
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                name = m.name
+                # נסנן רק מודלים מתקדמים (Gemini)
+                if 'gemini' in name:
+                    display_name = name.split('models/')[1]
+                    models[display_name] = name
+        return models
+    except Exception as e:
+        return {}
 
 @st.cache_data(show_spinner=False)
 def get_url_text(url):
@@ -132,20 +146,13 @@ def get_links_content():
 
 # --- 3. לוגיקה וממשק מרכזי ---
 
-if "GOOGLE_API_KEY" in st.secrets:
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-else:
-    st.error("🚨 חסר API Key בתיקיית ה-Secrets של Streamlit!")
-    st.stop()
-
 st.markdown("""
     <div class="main-header">
         <h1>⚙️ מרכז ידע הנדסי - Senior</h1>
-        <p>מערכת סיכומים חכמה מבוססת Gemini 3 | הכנה לראיונות תכן מכני</p>
+        <p>מערכת סיכומים חכמה | הכנה לראיונות תכן מכני</p>
     </div>
 """, unsafe_allow_html=True)
 
-# סילבוס
 categories = {
     "איפיון דרישות, אימות ותיקוף (V&V)": "פרט לעומק על PRD/TRD, מודל ה-V, Verification מול Validation וגזירת דרישות.",
     "שלבי פיתוח מוצר ובדיקות": "הרחב מאוד על PDR, CDR, NPI, ובדיקות ATP, QTP ו-ESS כולל מתודולוגיות.",
@@ -162,43 +169,36 @@ categories = {
     "תכן להרכבתיות ואמינות (DFA/DFS)": "סכם שיטות לצמצום טעויות הרכבה, נגישות לכלי עבודה ותחזוקתיות."
 }
 
-# הגדרת המודלים הזמינים לבחירה
-models_dict = {
-    "Gemini 3 Flash (מהיר - ברירת מחדל)": "models/gemini-3-flash",
-    "Gemini 3 Think (מחשבה והסקה עמוקה)": "models/gemini-3-think",
-    "Gemini 3 Pro (למשימות מורכבות במיוחד)": "models/gemini-3-pro"
-}
+available_models = get_available_models()
 
 with st.sidebar:
     st.header("🎛️ פאנל שליטה")
     
-    # בורר מודלים
-    selected_model_name = st.selectbox("בחר מודל עיבוד:", list(models_dict.keys()), index=0)
-    working_model = models_dict[selected_model_name]
+    if not available_models:
+        st.error("🚨 לא הצלחתי למשוך מודלים מהשרת. בדוק את ה-API Key.")
+        st.stop()
+        
+    # הצגת המודלים שבאמת זמינים בחשבון, כך שלעולם לא תהיה שגיאת 404
+    selected_model_display = st.selectbox("בחר מודל עיבוד מורשה:", list(available_models.keys()))
+    working_model = available_models[selected_model_display]
     
     st.divider()
     
     st.subheader("הגדרות סיכום")
-    # בחירת קטגוריה ראשית
     category = st.selectbox("נושא ראשי (סילבוס):", list(categories.keys()))
-    
-    # שדה טקסט חופשי למיקוד
     focus_text = st.text_input("מיקוד ספציפי (אופציונלי):", placeholder="למשל: תתמקד בחישובי O-ring...")
     
     st.divider()
-    
     generate_btn = st.button("🚀 הפק סיכום מקיף", type="primary", use_container_width=True)
-    st.caption("הסיכום יופק על בסיס קבצי ה-PDF והקישורים המוגדרים במאגר.")
 
 if generate_btn:
-    with st.spinner(f"סורק נתונים באמצעות {selected_model_name.split(' ')[2]}..."):
+    with st.spinner(f"מעבד נתונים בעזרת {selected_model_display}..."):
         content = get_pdf_text() + get_links_content()
         
         if content.strip():
             try:
                 model = genai.GenerativeModel(working_model)
                 
-                # בניית המשימה - מתחשב אם הוזן טקסט חופשי או לא
                 if focus_text.strip():
                     task_instruction = f"משימה: הלקוח בחר בקטגוריית '{category}', אך ביקש למקד את הסיכום **אך ורק** בנושא הבא: {focus_text}. התעלם משאר נושאי הקטגוריה והרחב לעומק רק על המיקוד שביקש."
                 else:
@@ -211,10 +211,10 @@ if generate_btn:
                 
                 הנחיות קריטיות לביצוע:
                 1. התבסס אך ורק על המידע מהמקורות שסופקו.
-                2. הסבר בהרחבה את הלוגיקה ההנדסית ("הלמה" ו"האיך").
+                2. הסבר בהרחבה את הלוגיקה ההנדסית.
                 3. חלק את התשובה לכותרות ורשימות בולטים.
-                4. **הנחיה למשוואות:** כל נוסחה מתמטית חייבת להיכתב ב-LaTeX סטנדרטי משמאל לימין. השתמש ב- $ עבור משוואה בתוך השורה, וב- $$ למשוואה ממורכזת בשורה נפרדת. אל תנסה לתרגם או להפוך משתנים.
-                5. ספק תשובה ברמת Senior Mechanical Engineer להכנה לראיון.
+                4. **הנחיה למשוואות:** כל נוסחה מתמטית חייבת להיכתב ב-LaTeX סטנדרטי משמאל לימין. השתמש ב- $ עבור משוואה בתוך השורה, וב- $$ למשוואה ממורכזת בשורה נפרדת.
+                5. ספק תשובה ברמת Senior Mechanical Engineer.
                 
                 המקורות:
                 ---
@@ -224,7 +224,6 @@ if generate_btn:
                 """
                 response = model.generate_content(prompt)
                 
-                # הצגת הכותרת בהתאם למיקוד
                 display_title = f"📚 נושא: {category}"
                 if focus_text.strip():
                     display_title += f" | מיקוד: {focus_text}"
