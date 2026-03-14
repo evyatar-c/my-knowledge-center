@@ -6,3 +6,4 @@ requests
 beautifulsoup4
 scikit-learn
 numpy
+streamlit-lottie
