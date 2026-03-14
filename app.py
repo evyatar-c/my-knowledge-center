@@ -12,7 +12,6 @@ import numpy as np
 # --- 1. הגדרות דף, ניהול מצבים ועיצוב נקי ובהיר (Light Theme) ---
 st.set_page_config(page_title="מרכז ידע הנדסי | Senior", layout="wide", page_icon="⚙️")
 
-# אתחול Session State
 if 'current_page' not in st.session_state:
     st.session_state.current_page = 'home'
 if 'selected_main_category' not in st.session_state:
@@ -36,13 +35,11 @@ st.markdown("""
         font-family: 'Heebo', sans-serif;
     }
     
-    /* רקע בהיר ונקי לאפליקציה כולה */
     .stApp {
         background-color: #f4f7f6;
         color: #1e293b;
     }
 
-    /* עיצוב כותרת ראשית (Hero Section) */
     .hero-section {
         background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
         border-radius: 16px;
@@ -62,28 +59,27 @@ st.markdown("""
         color: #bbe1fa !important;
     }
 
-    /* עיצוב כרטיסיות דף הבית - טקסט כהה על רקע לבן */
     div[data-testid="column"] button {
         background: #ffffff !important;
-        border: 1px solid #e2e8f0 !important;
+        border: 1px solid #cbd5e1 !important;
         border-radius: 12px !important;
-        height: 120px !important;
+        height: 100px !important;
         width: 100% !important;
-        font-size: 1.25rem !important;
+        font-size: 1.15rem !important;
         font-weight: 600 !important;
-        color: #1e293b !important; /* טקסט כהה וקריא */
+        color: #1e293b !important;
         transition: all 0.3s ease !important;
         box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
+        margin-bottom: 10px !important;
     }
     div[data-testid="column"] button:hover {
         background: #f8fafc !important;
         border-color: #3282b8 !important;
-        transform: translateY(-5px) !important;
-        box-shadow: 0 10px 20px rgba(50, 130, 184, 0.15) !important;
+        transform: translateY(-3px) !important;
+        box-shadow: 0 8px 15px rgba(50, 130, 184, 0.15) !important;
         color: #0f4c75 !important;
     }
 
-    /* עיצוב כרטיסיית התשובה (קונטיינר לבן ונקי) */
     .stContainer {
         background: #ffffff !important;
         border-radius: 16px;
@@ -92,14 +88,12 @@ st.markdown("""
         box-shadow: 0 10px 30px rgba(0,0,0,0.05);
     }
 
-    /* תפריט צד (Sidebar) */
     [data-testid="stSidebar"] {
         background-color: #ffffff !important;
         border-left: 1px solid #e2e8f0;
     }
 
-    /* יישור לימין RTL ושליטה בצבעי הטקסט */
-    .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, label, .stSelectbox, .stTextInput {
+    .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, label, .stTextInput {
         direction: rtl !important;
         text-align: right !important;
         color: #0f172a !important;
@@ -110,7 +104,7 @@ st.markdown("""
         text-align: right !important;
         font-size: 1.15rem;
         line-height: 1.8;
-        color: #334155 !important; /* אפור כהה לקריאה נוחה של פסקאות ארוכות */
+        color: #334155 !important;
     }
     .stMarkdown ul, .stMarkdown ol {
         direction: rtl !important;
@@ -118,8 +112,16 @@ st.markdown("""
         padding-left: 0 !important;
     }
     
-    /* תיקון צבעים ויישור לרשימות נפתחות (Dropdowns) */
-    div[data-baseweb="select"] > div, div[data-baseweb="popover"], ul[role="listbox"], li[role="option"] {
+    /* === תיקון מסגרות ועיצוב לרשימות הנפתחות === */
+    div[data-baseweb="select"] > div {
+        border: 1px solid #cbd5e1 !important; /* החזרת המסגרת */
+        border-radius: 6px !important;
+        background-color: #ffffff !important;
+    }
+    div[data-baseweb="select"] > div:hover {
+        border-color: #3282b8 !important;
+    }
+    div[data-baseweb="popover"], ul[role="listbox"], li[role="option"] {
         direction: rtl !important;
         text-align: right !important;
         color: #0f172a !important;
@@ -128,16 +130,15 @@ st.markdown("""
     
     [data-testid="collapsedControl"] { display: none !important; }
 
-    /* הגנה על נוסחאות LaTeX - משמאל לימין ובצבע בולט */
     .katex, .katex-display, .katex * {
         direction: ltr !important;
         unicode-bidi: isolate !important;
-        color: #00509e !important; /* כחול הנדסי כהה לנוסחאות */
+        color: #00509e !important; 
     }
     .katex-display {
         text-align: center !important;
         margin: 2rem auto !important;
-        background: #f1f5f9; /* רקע אפור בהיר מאוד למשוואות */
+        background: #f1f5f9; 
         padding: 15px;
         border-radius: 10px;
         border: 1px solid #cbd5e1;
@@ -211,7 +212,7 @@ categories_data = {
     "תכן כרטיסים אלקטרוניים (PCB)": ["מגבלות עריכה", "גמיש קשיח", "ציפויים קונפורמיים"],
     "היבטי עלות וניהול פרויקט": ["Design to Cost", "BTP מול BTS", "רכיבי מדף (COTS)"],
     "אנליזות וחישובים הנדסיים": ["Von Mises", "מאמצים בבורג", "רעידות", "תרמו-מכניות"],
-    "תכן להרכבתיות (DFA/DFS)": ["תכן להרכבתיות", "תחזוקתיות (MTTR)"]
+    "תכן להרכבתיות ואמינות (DFA/DFS)": ["תכן להרכבתיות", "תחזוקתיות (MTTR)"]
 }
 available_models = get_available_models()
 
@@ -243,18 +244,24 @@ if st.session_state.current_page == 'home':
         </div>
     """, unsafe_allow_html=True)
     
-    st.subheader("📌 נושאי ליבה (Quick Access)")
+    st.subheader("📌 12 נושאי ליבה (Quick Access)")
     
     cols = st.columns(3)
     with cols[0]:
         if st.button("🌡️ תכן תרמי ומעבר חום", use_container_width=True): navigate_to_summary("שיקולי תכן תרמי")
         if st.button("📐 סובלנויות ו-GD&T", use_container_width=True): navigate_to_summary("סובלנויות ו-GD&T")
+        if st.button("🚀 שלבי פיתוח (PDR/CDR)", use_container_width=True): navigate_to_summary("שלבי פיתוח מוצר ובדיקות הוכחה")
+        if st.button("⚙️ טכנולוגיות ייצור", use_container_width=True): navigate_to_summary("טכנולוגיות ייצור")
     with cols[1]:
         if st.button("💧 אטימות IP ו-EMI", use_container_width=True): navigate_to_summary("תכן לאטימות (IP & EMI)")
         if st.button("💥 אנליזות וחוזק", use_container_width=True): navigate_to_summary("אנליזות וחישובים הנדסיים")
+        if st.button("⚠️ ניהול סיכונים ו-FMEA", use_container_width=True): navigate_to_summary("ניהול סיכונים הנדסי")
+        if st.button("🔌 תכן כרטיסים (PCB)", use_container_width=True): navigate_to_summary("תכן כרטיסים אלקטרוניים (PCB)")
     with cols[2]:
         if st.button("🛡️ קורוזיה וטיפולי שטח", use_container_width=True): navigate_to_summary("קורוזיה, ציפויים וטיפולי שטח")
         if st.button("📝 איפיון דרישות V&V", use_container_width=True): navigate_to_summary("איפיון דרישות, אימות ותיקוף (V&V)")
+        if st.button("🧪 תכן פלסטיק וחומרים", use_container_width=True): navigate_to_summary("תכן פלסטיק וחומרים")
+        if st.button("💰 היבטי עלות וניהול", use_container_width=True): navigate_to_summary("היבטי עלות וניהול פרויקט")
 
 
 # ================= דף סיכום =================
@@ -284,16 +291,16 @@ elif st.session_state.current_page == 'summary':
                 
                 מבנה חובה לתשובה:
                 1. **גוף הסיכום (הסבר הנדסי ולוגיקה):** פרט לעומק בעזרת כותרות.
-                2. **הדמיה ויזואלית (חשוב!):** שלב בתוך הטקסט טבלאות השוואה הנדסיות, או תרשימי זרימה בפורמט טקסטואלי שממחישים את הקונספט.
-                3. **נוסחאות (קריטי):** כל מתמטיקה חייבת להיכתב ב-LaTeX סטנדרטי בלבד, משמאל לימין (Left-to-Right). 
+                2. **הדמיה ויזואלית טקסטואלית:** שלב בתוך הטקסט טבלאות השוואה הנדסיות ותרשימי זרימה בטקסט (ASCII Art) כדי להמחיש את המידע.
+                3. **נוסחאות (קריטי):** כל מתמטיקה חייבת להיכתב ב-LaTeX סטנדרטי בלבד, משמאל לימין. 
                    השתמש ב- $ עבור משוואה בתוך השורה, וב- $$ למשוואה ממורכזת בשורה נפרדת.
                 
                 בסוף הסיכום, חובה להוסיף את שני הבלוקים הבאים בדיוק תחת הכותרות הללו:
                 
                 ---
                 ### 🎥 מקורות והדמיות מומלצים להעמקה
-                * ספק 2-3 מילות מפתח ממוקדות באנגלית לחיפוש ב-YouTube (לדוגמה: "O-ring squeeze simulation").
-                * ציין איזה סוג של סרטון כדאי לחפש כדי להבין את הנושא ויזואלית.
+                * ספק 2-3 מילות מפתח ממוקדות באנגלית לחיפוש ב-YouTube.
+                * ציין איזה סוג של סרטון כדאי לחפש כדי להבין את הנושא ויזואלית (למשל: "חפש סימולציית FEA של מאמצי Von Mises").
                 
                 ### 🔄 נושאים קשורים שכדאי ללמוד
                 * מתוך עולם התכן המכני, הצע 3 תתי-נושאים שמשיקים ישירות לנושא שסוכם ושיש להם סבירות גבוהה לעלות בראיון המשך.
