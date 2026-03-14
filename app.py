@@ -9,10 +9,10 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
-# --- 1. הגדרות דף, ניהול מצבים ועיצוב מתקדם ---
+# --- 1. הגדרות דף, ניהול מצבים ועיצוב נקי ובהיר (Light Theme) ---
 st.set_page_config(page_title="מרכז ידע הנדסי | Senior", layout="wide", page_icon="⚙️")
 
-# אתחול Session State לניהול ניווט בדפים
+# אתחול Session State
 if 'current_page' not in st.session_state:
     st.session_state.current_page = 'home'
 if 'selected_main_category' not in st.session_state:
@@ -30,115 +30,123 @@ def navigate_to_home():
 
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700&display=swap');
     
     html, body, [class*="css"] {
         font-family: 'Heebo', sans-serif;
     }
     
+    /* רקע בהיר ונקי לאפליקציה כולה */
     .stApp {
-        background-color: #0e1117;
-        color: #fafafa;
+        background-color: #f4f7f6;
+        color: #1e293b;
     }
 
-    /* עיצוב כותרת ראשית */
+    /* עיצוב כותרת ראשית (Hero Section) */
     .hero-section {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
         border-radius: 16px;
         padding: 3rem 2rem;
         text-align: center;
         margin-bottom: 3rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     }
     .hero-section h1 {
         font-size: 3.5rem;
         font-weight: 700;
         margin-bottom: 0.5rem;
-        background: -webkit-linear-gradient(45deg, #ffffff, #a8c0ff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #ffffff !important;
     }
     .hero-section p {
         font-size: 1.3rem;
-        color: #e2e8f0;
+        color: #bbe1fa !important;
     }
 
-    /* עיצוב כרטיסיות דף הבית */
+    /* עיצוב כרטיסיות דף הבית - טקסט כהה על רקע לבן */
     div[data-testid="column"] button {
-        background: rgba(30, 41, 59, 0.7) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
         border-radius: 12px !important;
         height: 120px !important;
         width: 100% !important;
-        font-size: 1.2rem !important;
+        font-size: 1.25rem !important;
         font-weight: 600 !important;
-        color: #64b5f6 !important;
+        color: #1e293b !important; /* טקסט כהה וקריא */
         transition: all 0.3s ease !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
     }
     div[data-testid="column"] button:hover {
-        background: rgba(41, 59, 85, 0.9) !important;
-        border-color: #64b5f6 !important;
+        background: #f8fafc !important;
+        border-color: #3282b8 !important;
         transform: translateY(-5px) !important;
-        box-shadow: 0 10px 20px rgba(100, 181, 246, 0.2) !important;
+        box-shadow: 0 10px 20px rgba(50, 130, 184, 0.15) !important;
+        color: #0f4c75 !important;
     }
 
-    /* כפתור חזרה לדף הבית */
-    .back-btn {
-        margin-bottom: 2rem;
-    }
-
-    /* עיצוב כרטיסיית התשובה */
+    /* עיצוב כרטיסיית התשובה (קונטיינר לבן ונקי) */
     .stContainer {
-        background: rgba(15, 23, 42, 0.6) !important;
+        background: #ffffff !important;
         border-radius: 16px;
-        border: 1px solid rgba(255,255,255,0.05) !important;
-        padding: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: 1px solid #cbd5e1 !important;
+        padding: 2.5rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
     }
 
-    /* יישור לימין RTL */
+    /* תפריט צד (Sidebar) */
+    [data-testid="stSidebar"] {
+        background-color: #ffffff !important;
+        border-left: 1px solid #e2e8f0;
+    }
+
+    /* יישור לימין RTL ושליטה בצבעי הטקסט */
     .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, label, .stSelectbox, .stTextInput {
         direction: rtl !important;
         text-align: right !important;
+        color: #0f172a !important;
     }
+    
     .stMarkdown p, .stMarkdown li {
         direction: rtl !important;
         text-align: right !important;
         font-size: 1.15rem;
         line-height: 1.8;
+        color: #334155 !important; /* אפור כהה לקריאה נוחה של פסקאות ארוכות */
     }
     .stMarkdown ul, .stMarkdown ol {
         direction: rtl !important;
         padding-right: 2.5rem !important;
         padding-left: 0 !important;
     }
+    
+    /* תיקון צבעים ויישור לרשימות נפתחות (Dropdowns) */
     div[data-baseweb="select"] > div, div[data-baseweb="popover"], ul[role="listbox"], li[role="option"] {
         direction: rtl !important;
         text-align: right !important;
+        color: #0f172a !important;
+        background-color: #ffffff !important;
     }
+    
     [data-testid="collapsedControl"] { display: none !important; }
 
-    /* הגנה על נוסחאות LaTeX */
+    /* הגנה על נוסחאות LaTeX - משמאל לימין ובצבע בולט */
     .katex, .katex-display, .katex * {
         direction: ltr !important;
         unicode-bidi: isolate !important;
-        color: #4facfe; 
+        color: #00509e !important; /* כחול הנדסי כהה לנוסחאות */
     }
     .katex-display {
         text-align: center !important;
         margin: 2rem auto !important;
-        background: rgba(0,0,0,0.3);
+        background: #f1f5f9; /* רקע אפור בהיר מאוד למשוואות */
         padding: 15px;
         border-radius: 10px;
-        border: 1px solid rgba(79, 172, 254, 0.2);
+        border: 1px solid #cbd5e1;
     }
     span.katex { display: inline-block; direction: ltr !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. פונקציות AI, משיכת מידע ו-RAG (ללא שינוי לוגי, הוסתר לשמירה על נקיון) ---
+# --- 2. פונקציות AI, משיכת מידע ו-RAG ---
 
 if "GOOGLE_API_KEY" in st.secrets: genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 else: st.error("🚨 חסר API Key"); st.stop()
@@ -160,14 +168,12 @@ def get_available_models():
 @st.cache_data(show_spinner=False)
 def get_all_content():
     text = ""
-    # PDF
     if os.path.exists("pdfs"):
         for filename in [f for f in os.listdir("pdfs") if f.endswith(".pdf")]:
             try:
                 with open(os.path.join("pdfs", filename), 'rb') as f:
                     for page in PyPDF2.PdfReader(f).pages: text += (page.extract_text() or "") + "\n"
             except: continue
-    # Links
     if os.path.exists('links.txt'):
         with open('links.txt', 'r', encoding='utf-8') as f:
             for link in [l.strip() for l in f.readlines() if l.strip()]:
@@ -217,7 +223,6 @@ with st.sidebar:
     working_model = available_models[selected_model_display]
     st.divider()
     
-    # חיפוש חופשי / יזום מהתפריט
     st.subheader("חיפוש ממוקד")
     side_category = st.selectbox("ספריית ידע:", list(categories_data.keys()), key="side_main")
     side_sub = st.selectbox("תת-נושא:", ["ללא"] + categories_data[side_category], key="side_sub")
@@ -240,10 +245,7 @@ if st.session_state.current_page == 'home':
     
     st.subheader("📌 נושאי ליבה (Quick Access)")
     
-    # יצירת גריד של כרטיסיות (3 עמודות)
     cols = st.columns(3)
-    
-    # כרטיסיות מותאמות אישית
     with cols[0]:
         if st.button("🌡️ תכן תרמי ומעבר חום", use_container_width=True): navigate_to_summary("שיקולי תכן תרמי")
         if st.button("📐 סובלנויות ו-GD&T", use_container_width=True): navigate_to_summary("סובלנויות ו-GD&T")
@@ -272,7 +274,6 @@ elif st.session_state.current_page == 'summary':
                 search_query = f"{main_cat} {sub_cat if sub_cat != 'ללא' else ''} {focus}".strip()
                 relevant_content = retrieve_top_chunks(search_query, raw_content)
                 
-                # העשרת הפרומפט להוספת מדיה, נושאים קשורים והדמיות
                 task_instruction = f"הנושא: {main_cat}. "
                 if sub_cat != "ללא": task_instruction += f"התמקדות ב: {sub_cat}. "
                 if focus: task_instruction += f"דגש מיוחד: {focus}. "
@@ -284,14 +285,15 @@ elif st.session_state.current_page == 'summary':
                 מבנה חובה לתשובה:
                 1. **גוף הסיכום (הסבר הנדסי ולוגיקה):** פרט לעומק בעזרת כותרות.
                 2. **הדמיה ויזואלית (חשוב!):** שלב בתוך הטקסט טבלאות השוואה הנדסיות, או תרשימי זרימה בפורמט טקסטואלי שממחישים את הקונספט.
-                3. **נוסחאות:** כתוב ב-LaTeX סטנדרטי (Left-to-Right). $ למשוואה בשורה, $$ לשורה נפרדת.
+                3. **נוסחאות (קריטי):** כל מתמטיקה חייבת להיכתב ב-LaTeX סטנדרטי בלבד, משמאל לימין (Left-to-Right). 
+                   השתמש ב- $ עבור משוואה בתוך השורה, וב- $$ למשוואה ממורכזת בשורה נפרדת.
                 
                 בסוף הסיכום, חובה להוסיף את שני הבלוקים הבאים בדיוק תחת הכותרות הללו:
                 
                 ---
                 ### 🎥 מקורות והדמיות מומלצים להעמקה
                 * ספק 2-3 מילות מפתח ממוקדות באנגלית לחיפוש ב-YouTube (לדוגמה: "O-ring squeeze simulation").
-                * ציין איזה סוג של סרטון או סימולציה כדאי לחפש כדי להבין את הנושא ויזואלית.
+                * ציין איזה סוג של סרטון כדאי לחפש כדי להבין את הנושא ויזואלית.
                 
                 ### 🔄 נושאים קשורים שכדאי ללמוד
                 * מתוך עולם התכן המכני, הצע 3 תתי-נושאים שמשיקים ישירות לנושא שסוכם ושיש להם סבירות גבוהה לעלות בראיון המשך.
@@ -300,7 +302,7 @@ elif st.session_state.current_page == 'summary':
                 ---
                 {relevant_content}
                 ---
-                כתוב בעברית ברמה מקצועית.
+                כתוב בעברית ברמה מקצועית. אל תמציא מידע שאינו במקורות.
                 """
                 
                 model = genai.GenerativeModel(working_model, generation_config=genai.types.GenerationConfig(max_output_tokens=8192, temperature=0.3))
