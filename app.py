@@ -8,9 +8,23 @@ from youtube_transcript_api import YouTubeTranscriptApi
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+import json
+from streamlit_lottie import st_lottie
 
-# --- 1. הגדרות דף ועיצוב CSS מתקדם ---
-st.set_page_config(page_title="מרכז ידע הנדסי", layout="wide", page_icon="⚙️")
+# --- 1. הגדרות דף ועיצוב UI/UX מתקדם ---
+st.set_page_config(page_title="מרכז ידע הנדסי", layout="wide", page_icon="🚀")
+
+# פונקציה לטעינת אנימציות Lottie
+@st.cache_data
+def load_lottieurl(url: str):
+    try:
+        r = requests.get(url)
+        if r.status_code != 200: return None
+        return r.json()
+    except: return None
+
+# טעינת אנימציית מהנדס/טכנולוגיה
+lottie_engineer = load_lottieurl("https://assets2.lottiefiles.com/packages/lf20_UJNc2t.json")
 
 st.markdown("""
     <style>
@@ -20,30 +34,89 @@ st.markdown("""
         font-family: 'Heebo', sans-serif;
     }
     
-    /* יישור לימין של אלמנטים טקסטואליים בסיסיים */
+    /* === אנימציית רקע דינמית (Moving Gradient) === */
+    .stApp {
+        background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #0f2027);
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
+        color: white; /* התאמת טקסט לרקע כהה */
+    }
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    /* === עיצוב זכוכית (Glassmorphism) לתפריט הצד === */
+    [data-testid="stSidebar"] {
+        background: rgba(15, 32, 39, 0.6) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* === כותרת מרכזית מרחפת === */
+    .glass-header {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(15px);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 2rem;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease;
+    }
+    .glass-header:hover {
+        transform: translateY(-5px);
+    }
+    .glass-header h1 {
+        background: -webkit-linear-gradient(45deg, #4facfe, #00f2fe);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 3rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    .glass-header p { color: #b0c4de; font-size: 1.2rem; }
+
+    /* === כרטיסיית התשובה (Glass Card) === */
+    .stContainer {
+        background: rgba(0, 0, 0, 0.4) !important;
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        border: 1px solid rgba(0, 242, 254, 0.3) !important;
+        padding: 20px;
+        box-shadow: 0 0 20px rgba(0, 242, 254, 0.1);
+    }
+
+    /* === כפתור זוהר (Neon Button) === */
+    .stButton>button {
+        background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%) !important;
+        color: #000 !important;
+        font-weight: bold !important;
+        border: none !important;
+        border-radius: 50px !important;
+        padding: 0.75rem 2rem !important;
+        box-shadow: 0 4px 15px rgba(0, 242, 254, 0.4) !important;
+        transition: all 0.3s ease !important;
+    }
+    .stButton>button:hover {
+        transform: scale(1.05) !important;
+        box-shadow: 0 6px 20px rgba(0, 242, 254, 0.6) !important;
+    }
+
+    /* יישור טקסט ו-RTL */
     .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, label, .stSelectbox, .stTextInput {
         direction: rtl !important;
         text-align: right !important;
+        color: #e0e0e0;
     }
-    
-    /* =========================================
-       תיקון ייעודי לרשימות נפתחות (Dropdowns)
-       מיישר את המלל לימין בתוך אפשרויות הבחירה
-       ========================================= */
-    div[data-baseweb="select"] > div,
-    div[data-baseweb="popover"],
-    ul[role="listbox"],
-    ul[role="listbox"] li,
-    li[role="option"],
-    div[role="option"] {
-        direction: rtl !important;
-        text-align: right !important;
-    }
-    
-    /* תיקון ייעודי לרשימות בטקסט (בולטים ומספרים) */
     .stMarkdown p, .stMarkdown li {
         direction: rtl !important;
         text-align: right !important;
+        font-size: 1.1rem;
+        line-height: 1.8;
     }
     .stMarkdown ul, .stMarkdown ol {
         direction: rtl !important;
@@ -51,52 +124,33 @@ st.markdown("""
         padding-left: 0 !important;
         text-align: right !important;
     }
-    
-    /* העלמת כפתור הכיווץ של תפריט הצד */
-    [data-testid="collapsedControl"] {
-        display: none !important;
+    div[data-baseweb="select"] > div, div[data-baseweb="popover"], ul[role="listbox"], ul[role="listbox"] li, li[role="option"], div[role="option"] {
+        direction: rtl !important;
+        text-align: right !important;
     }
     
-    /* תיקון הרמטי לנוסחאות (KaTeX) משמאל לימין */
+    /* הסתרת כפתור התפריט המעצבן */
+    [data-testid="collapsedControl"] { display: none !important; }
+
+    /* הגנה על נוסחאות LaTeX */
     .katex, .katex-display, .katex * {
         direction: ltr !important;
         unicode-bidi: isolate !important;
+        color: #00f2fe; /* צבע תכלת לנוסחאות שיבלטו על הרקע הכהה */
     }
     .katex-display {
         text-align: center !important;
         margin: 1.5rem auto !important;
         display: block;
+        background: rgba(0,0,0,0.3);
+        padding: 10px;
+        border-radius: 8px;
     }
-    span.katex {
-        display: inline-block;
-        direction: ltr !important;
-    }
-    
-    /* עיצוב כותרת ראשית */
-    .main-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
-        padding: 2rem;
-        border-radius: 12px;
-        text-align: center;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-    .main-header h1 {
-        color: white;
-        font-size: 2.8rem;
-        margin: 0;
-        font-weight: 700;
-    }
-    .main-header p {
-        color: #e0e0e0;
-        font-size: 1.2rem;
-        margin-top: 0.5rem;
-    }
+    span.katex { display: inline-block; direction: ltr !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. פונקציות AI ומשיכת מידע ---
+# --- 2. פונקציות AI ומשיכת מידע (כמו מקודם) ---
 
 if "GOOGLE_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -113,14 +167,10 @@ def get_available_models():
                 name = m.name
                 if 'gemini-3' in name.lower():
                     clean_name = name.split('models/')[1]
-                    if 'pro' in clean_name:
-                        models[f"🧠 {clean_name} (מעמיק, מומלץ)"] = name
-                    elif 'think' in clean_name:
-                        models[f"🤔 {clean_name} (הסקה וחשיבה)"] = name
-                    elif 'flash' in clean_name:
-                        models[f"⚡ {clean_name} (מהיר)"] = name
-                    else:
-                        models[clean_name] = name
+                    if 'pro' in clean_name: models[f"🧠 {clean_name} (מעמיק, מומלץ)"] = name
+                    elif 'think' in clean_name: models[f"🤔 {clean_name} (הסקה וחשיבה)"] = name
+                    elif 'flash' in clean_name: models[f"⚡ {clean_name} (מהיר)"] = name
+                    else: models[clean_name] = name
         return models
     except: return {}
 
@@ -166,17 +216,12 @@ def get_links_content():
             for link in f.readlines():
                 link = link.strip()
                 if not link: continue
-                if "youtube.com" in link or "youtu.be" in link:
-                    combined_text += get_youtube_text(link)
-                else:
-                    combined_text += get_url_text(link)
+                if "youtube.com" in link or "youtu.be" in link: combined_text += get_youtube_text(link)
+                else: combined_text += get_url_text(link)
     return combined_text
 
-# --- 3. מנוע RAG חכם ---
-
 def chunk_text(text, chunk_size=1500, overlap=300):
-    chunks = []
-    start = 0
+    chunks, start = [], 0
     while start < len(text):
         end = start + chunk_size
         chunks.append(text[start:end])
@@ -186,207 +231,114 @@ def chunk_text(text, chunk_size=1500, overlap=300):
 def retrieve_top_chunks(query, chunks, top_k=20):
     if not chunks: return ""
     if len(chunks) <= top_k: return "\n...\n".join(chunks)
-    
     vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform(chunks + [query])
     cosine_similarities = cosine_similarity(tfidf_matrix[-1], tfidf_matrix[:-1]).flatten()
-    top_indices = cosine_similarities.argsort()[-top_k:][::-1]
-    top_indices = sorted(top_indices) 
+    top_indices = sorted(cosine_similarities.argsort()[-top_k:][::-1])
     return "\n...\n".join([chunks[i] for i in top_indices])
 
-# --- 4. לוגיקה וממשק מרכזי ---
+# --- 3. ממשק משתמש מרכזי ---
 
-st.markdown("""
-    <div class="main-header">
-        <h1>⚙️ מרכז ידע הנדסי - Senior</h1>
-        <p>מערכת RAG חכמה מבוססת Gemini 3 | הכנה לראיונות תכן מכני</p>
-    </div>
-""", unsafe_allow_html=True)
+# כותרת מעוצבת עם אנימציה
+col1, col2 = st.columns([1, 5])
+with col1:
+    if lottie_engineer:
+        st_lottie(lottie_engineer, height=120, key="engineer")
+with col2:
+    st.markdown("""
+        <div class="glass-header">
+            <h1>מרכז ידע הנדסי - Senior</h1>
+            <p>מערכת RAG חכמה מבוססת Gemini 3 | סביבת למידה אינטראקטיבית</p>
+        </div>
+    """, unsafe_allow_html=True)
 
-# מיפוי קטגוריות ותתי נושאים מהסילבוס
 categories_data = {
-    "איפיון דרישות, אימות ותיקוף (V&V)": [
-        "איפיון דרישות: הבחנה בין PRD ל-TRD וגזירת דרישות",
-        "מודל ה-V: הקשר המבני בין דרישות לבדיקות",
-        "שיטות אימות (Verification): אנליזה, בחינה, ניסוי, הדגמה",
-        "תיקוף (Validation): הוכחה מול צורכי המשתמש"
-    ],
-    "שלבי פיתוח מוצר ובדיקות הוכחה": [
-        "מחזור חיי פיתוח: PDR, CDR, NPI",
-        "בדיקות קבלה (ATP) ליחידות בייצור סדרתי",
-        "בדיקות הסמכה (QTP) לעמידה בתנאי סביבה",
-        "סינון סביבתי (ESS) ואיתור כשלי ייצור",
-        "בחינת מוצר ראשון מקו ייצור FAI"
-    ],
-    "ניהול סיכונים הנדסי": [
-        "צמצום סיכונים (POD - Proof of Design) וניסויי היתכנות",
-        "טבלת ניהול סיכונים: זיהוי, חומרה, הפחתה ותוכניות מגירה",
-        "ניתוח FMEA - מצבי כשל פוטנציאליים"
-    ],
-    "טכנולוגיות ייצור (Conventional & Advanced)": [
-        "ייצור גורע: עיבוד שבבי, אירוזיה, לייזר ו-DFM",
-        "יציקות מתכת: Die Cast, יציקות חול ושעווה אבודה",
-        "ייצור מוסף (הדפסות תלת-ממד) ואופטימיזציה",
-        "הזרקות פלסטיק",
-        "חיבור בריתוך או הדבקה",
-        "שיטות עיצוב מתכת (Forming): ערגול, אקסטרוזיה, חישול"
-    ],
-    "סובלנויות ו-GD&T": [
-        "שליטה בבקרות גיאומטריות (מיקום, צורה, תנוחה)",
-        "מושג Virtual Condition ועקרונות MMC/LMC",
-        "הגדרת דאטומים וסימונים (projection, envelope)",
-        "ניתוח צבירת טולרנסים (Worst Case מול RSS)",
-        "מציאת טולרנסים (Fixed vs Floating fastener)",
-        "התאמות (Fits) ואפיצויות גל וקדח",
-        "הגדרות טיב שטח"
-    ],
-    "קורוזיה, ציפויים וטיפולי שטח": [
-        "סוגי מתכות, סוגי אלומיניום, פלדות ומגנזיום",
-        "סוגי קורוזיה: רגילה, גלוונית, מאמצים",
-        "שיקולי תכן במניעת קורוזיה גלוונית",
-        "שיקולים בבחירת ציפויים",
-        "טבלת היתפסות ומניעת היתפסות (Galling)"
-    ],
-    "תכן לאטימות (IP & EMI)": [
-        "אטימות סביבתית: רמות IP ושיקולי תכן",
-        "תכן אטמים (O-rings) וחישובי דחיסה",
-        "חריצי ניקוז, אוורור ושקיות ייבוש",
-        "בדיקות דליפה ומקורות דליפה",
-        "אטימות אלקטרומגנטית (EMI) ורציפות חשמלית"
-    ],
-    "שיקולי תכן תרמי": [
-        "מנגנוני מעבר חום (הולכה, הסעה וקרינה)",
-        "משוואות חום ושרשרת נגדים (טור/מקביל)",
-        "מנגנוני פינוי חום ומציאת טמפ' צומת",
-        "בחירת גופי קירור (Heat Sinks) ו-TIM",
-        "סימולציות לחזוי טמפרטורות צומת"
-    ],
-    "תכן פלסטיק וחומרים מתקדמים": [
-        "תכן להזרקה: זוויות חליצה, עובי דופן, מניעת פגמים",
-        "עבודה עם פולימרים הנדסיים (ULTEM, טיפולים תרמיים)"
-    ],
-    "תכן כרטיסים אלקטרוניים (PCB)": [
-        "שיקולי תכן, מערכת צירים ומגבלות עריכה",
-        "קדחי דפינה, ICT, מצופים/לא מצופים",
-        "גמיש קשיח: רדיוסים ומספר עלים",
-        "שרטוטים לכרטיס, בדיקות BA וסימוכי ייצור",
-        "שלבי ייצור והרכבה של כרטיסים",
-        "ציפויים קונפורמיים וחומרי צרירה",
-        "הגדרות טאבים וחיתוך טאבים"
-    ],
-    "היבטי עלות וניהול פרויקט": [
-        "Design to Cost (DTC) וזיהוי זוללי עלות",
-        "מודלי ניהול פיתוח: BTP לעומת BTS",
-        "שימוש ברכיבי מדף (COTS/MOTS)",
-        "מבנה תוכנית עבודה (גאנט, אבני דרך, מסירות)"
-    ],
-    "אנליזות וחישובים הנדסיים": [
-        "אנליזות חוזק (Von Mises, כפיפה, על/תת לחץ)",
-        "מאמצים בבורג בהידוק מכלולים",
-        "אנליזות רעידות (תדרים עצמיים, תאוצות ושקיעות)",
-        "אנליזות תרמו-מכניות (מחזורים תרמיים, התפשטות, גזירה)",
-        "אנליזות ויסקו פלסטיות",
-        "ניסויי תיקוף (תקני IPC, מדידת תאוצות)"
-    ],
-    "תכן להרכבתיות ואמינות (DFA/DFS)": [
-        "תכן להרכבתיות (צמצום טעויות, נגישות, סדר הרכבה)",
-        "אמינות ותחזוקתיות (MTTR, החלפת יחידות LRU)"
-    ]
+    "איפיון דרישות, אימות ותיקוף (V&V)": ["איפיון דרישות: הבחנה בין PRD ל-TRD וגזירת דרישות", "מודל ה-V: הקשר המבני בין דרישות לבדיקות", "שיטות אימות (Verification)", "תיקוף (Validation)"],
+    "שלבי פיתוח מוצר ובדיקות הוכחה": ["מחזור חיי פיתוח: PDR, CDR, NPI", "בדיקות קבלה (ATP)", "בדיקות הסמכה (QTP)", "סינון סביבתי (ESS)", "בחינת מוצר ראשון FAI"],
+    "ניהול סיכונים הנדסי": ["צמצום סיכונים (POD)", "טבלת ניהול סיכונים", "ניתוח FMEA"],
+    "טכנולוגיות ייצור (Conventional & Advanced)": ["ייצור גורע: עיבוד שבבי ו-DFM", "יציקות מתכת", "ייצור מוסף (תלת-ממד)", "הזרקות פלסטיק", "עיצוב מתכת (Forming)"],
+    "סובלנויות ו-GD&T": ["בקרות גיאומטריות", "מושג Virtual Condition ו-MMC", "ניתוח צבירת טולרנסים (Worst Case מול RSS)", "מציאת טולרנסים (Fasteners)", "התאמות (Fits)"],
+    "קורוזיה, ציפויים וטיפולי שטח": ["סוגי מתכות וסגסוגות", "קורוזיה גלוונית ומאמצים", "שיקולים בבחירת ציפויים", "מניעת היתפסות (Galling)"],
+    "תכן לאטימות (IP & EMI)": ["רמות IP", "תכן אטמים וחישובי דחיסה", "חריצי ניקוז ואוורור", "אטימות אלקטרומגנטית (EMI)"],
+    "שיקולי תכן תרמי": ["מנגנוני מעבר חום", "משוואות חום ושרשרת נגדים", "טמפ' צומת ו-Heat Sinks"],
+    "תכן פלסטיק וחומרים מתקדמים": ["תכן להזרקה (עובי דופן, חליצה)", "פולימרים הנדסיים"],
+    "תכן כרטיסים אלקטרוניים (PCB)": ["מגבלות עריכה וקדחים", "גמיש קשיח", "ציפויים קונפורמיים", "שלבי ייצור והרכבה"],
+    "היבטי עלות וניהול פרויקט": ["Design to Cost (DTC)", "מודלי ניהול BTP/BTS", "רכיבי מדף (COTS)", "גאנט ואבני דרך"],
+    "אנליזות וחישובים הנדסיים": ["אנליזות חוזק (Von Mises)", "מאמצים בבורג", "אנליזות רעידות", "אנליזות תרמו-מכניות"],
+    "תכן להרכבתיות ואמינות (DFA/DFS)": ["תכן להרכבתיות", "אמינות ותחזוקתיות (MTTR)"]
 }
 
 available_models = get_available_models()
 
 with st.sidebar:
-    st.header("🎛️ פאנל שליטה")
+    st.header("🎛️ חדר בקרה")
     
     if not available_models:
-        st.error("🚨 לא הצלחתי למשוך מודלים מהשרת. בדוק את ה-API Key.")
+        st.error("🚨 שגיאת התחברות לשרת (API Key)")
         st.stop()
         
-    selected_model_display = st.selectbox("בחר מודל עיבוד מורשה:", list(available_models.keys()))
+    selected_model_display = st.selectbox("מנוע עיבוד AI:", list(available_models.keys()))
     working_model = available_models[selected_model_display]
     
     st.divider()
-    st.subheader("הגדרות סיכום")
     
-    # נושא ראשי
-    main_category = st.selectbox("נושא ראשי (סילבוס):", list(categories_data.keys()))
-    
-    # תת נושא - נגזר מהנושא הראשי
-    sub_topic_options = ["ללא"] + categories_data[main_category]
-    selected_sub_topic = st.selectbox("תת-נושא להעמקה:", sub_topic_options)
-    
-    # מיקוד חופשי
-    focus_text = st.text_input("מיקוד ספציפי (מלל חופשי אופציונלי):", placeholder="למשל: תתמקד בחישובי O-ring...")
+    main_category = st.selectbox("ספריית ידע (סילבוס):", list(categories_data.keys()))
+    selected_sub_topic = st.selectbox("התמקדות בתת-נושא:", ["ללא"] + categories_data[main_category])
+    focus_text = st.text_input("הכוונת מנוע (מלל חופשי):", placeholder="הזן דגשים ספציפיים...")
     
     st.divider()
-    generate_btn = st.button("🚀 הפק סיכום מקיף", type="primary", use_container_width=True)
+    generate_btn = st.button("🚀 הפעל עיבוד נתונים", type="primary", use_container_width=True)
 
 if generate_btn:
-    with st.spinner(f"בונה אינדקס, שולף מקורות מדויקים ומעבד בעזרת {selected_model_display}..."):
-        
+    with st.spinner(f"המודל מנתח מקורות ומפיק תובנות..."):
         raw_content = get_pdf_text() + get_links_content()
         
         if raw_content.strip():
             try:
-                # הרכבת שאילתת חיפוש
                 search_query = main_category
-                if selected_sub_topic != "ללא":
-                    search_query += " " + selected_sub_topic
-                if focus_text.strip():
-                    search_query += " " + focus_text.strip()
+                if selected_sub_topic != "ללא": search_query += " " + selected_sub_topic
+                if focus_text.strip(): search_query += " " + focus_text.strip()
                     
                 chunks = chunk_text(raw_content)
                 relevant_content = retrieve_top_chunks(search_query, chunks)
                 
-                # הרכבת ההוראה (Prompt) למודל
                 task_instruction = f"הנושא הראשי: {main_category}.\n"
-                if selected_sub_topic != "ללא":
-                    task_instruction += f"תת-הנושא להתמקדות: {selected_sub_topic}.\n"
-                if focus_text.strip():
-                    task_instruction += f"מיקוד ספציפי וחשוב: {focus_text}.\n"
+                if selected_sub_topic != "ללא": task_instruction += f"תת-הנושא להתמקדות: {selected_sub_topic}.\n"
+                if focus_text.strip(): task_instruction += f"מיקוד ספציפי וחשוב: {focus_text}.\n"
                 
-                task_instruction += "עלייך לייצר מסמך לימוד מקיף, מעמיק ומפורט ככל האפשר סביב המיקוד שהתבקש, תוך התעלמות מנושאים לא קשורים באותה קטגוריה. ספק צלילת עומק הנדסית ומפורטת למיקוד זה."
+                task_instruction += "ייצר מסמך לימוד מקיף ומעמיק סביב המיקוד. אל תתמצת כלל."
 
-                generation_config = genai.types.GenerationConfig(
-                    max_output_tokens=8192,
-                    temperature=0.3
-                )
+                generation_config = genai.types.GenerationConfig(max_output_tokens=8192, temperature=0.3)
                 model = genai.GenerativeModel(working_model, generation_config=generation_config)
                 
                 prompt = f"""
                 אתה מהנדס מכונות בכיר ומדריך טכני. 
-                
                 {task_instruction}
                 
                 הנחיות קריטיות לביצוע:
-                1. התבסס אך ורק על המידע מהמקורות שסופקו למטה.
-                2. הסבר בהרחבה את הלוגיקה ההנדסית ("הלמה" ו"האיך"). אל תתמצת כלל!
-                3. חלק את התשובה לכותרות ראשיות, כותרות משנה, ורשימות בולטים ארוכות ומפורטות.
-                4. **הנחיה למשוואות:** כל נוסחה מתמטית חייבת להיכתב ב-LaTeX סטנדרטי משמאל לימין. השתמש ב- $ עבור משוואה בתוך השורה, וב- $$ למשוואה ממורכזת בשורה נפרדת.
-                5. ספק תשובה מקצועית, אובייקטיבית וקרה, ברמת Senior Mechanical Engineer.
+                1. התבסס אך ורק על המידע מהמקורות.
+                2. הסבר בהרחבה את הלוגיקה ההנדסית ("הלמה" ו"האיך").
+                3. חלק לכותרות ורשימות בולטים ארוכות.
+                4. **משוואות:** כל נוסחה מתמטית תכתב ב-LaTeX משמאל לימין ($ עבור שורה, $$ לממורכזת).
+                5. ספק תשובה ברמת Senior Mechanical Engineer.
                 
-                המקורות שנשלפו מהמאגר:
+                המקורות:
                 ---
                 {relevant_content}
                 ---
-                כתוב בעברית טכנית ברמה גבוהה מאוד.
+                כתוב בעברית טכנית ברמה גבוהה.
                 """
                 response = model.generate_content(prompt)
                 
-                # בניית כותרת התצוגה הדינמית
                 display_title = f"📚 {main_category}"
-                if selected_sub_topic != "ללא":
-                    display_title += f" | {selected_sub_topic.split(':')[0]}"
-                if focus_text.strip():
-                    display_title += f" | מיקוד: {focus_text}"
-                    
-                st.subheader(display_title)
+                if selected_sub_topic != "ללא": display_title += f" | {selected_sub_topic.split(':')[0]}"
                 
+                # הצגת התשובה בתוך "כרטיסיית זכוכית"
                 with st.container(border=True):
+                    st.subheader(display_title)
                     st.markdown(response.text)
                     
             except Exception as e:
-                st.error(f"שגיאה בהפקת התוכן: {e}")
+                st.error(f"שגיאת תקשורת/מכסה: {e}")
         else:
-            st.warning("לא נמצא תוכן במקורות שלך ב-GitHub (תיקיית pdfs או קובץ links.txt).")
+            st.warning("המאגר ריק. וודא העלאת PDF או קישורים.")
